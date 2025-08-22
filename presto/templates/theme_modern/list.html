@@ -1,0 +1,8 @@
+<div style="font-family: sans-serif; background-color: #f8f9fa; height: 100%; padding: 40px; display: flex; flex-direction: column;">
+    <h2 style="font-size: 48px; color: #212529; margin-bottom: 30px; border-bottom: 3px solid #007bff; padding-bottom: 15px;">{{ title }}</h2>
+    <ul style="font-size: 24px; color: #343a40; list-style: none; padding-left: 0;">
+        {% for item in content %}
+        <li style="margin-bottom: 15px; padding-left: 20px; border-left: 3px solid #dee2e6; transition: border-color 0.2s;">{{ item }}</li>
+        {% endfor %}
+    </ul>
+</div>

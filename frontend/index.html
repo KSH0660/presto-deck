@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presto Deck Generator</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f7f7f7; }
+        header { background-color: #1a1a1a; color: white; padding: 20px 40px; text-align: center; }
+        header h1 { margin: 0; }
+        main { padding: 20px 40px; max-width: 900px; margin: 0 auto; }
+        .form-container { background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; }
+        input, select { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background-color: #007aff; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #005ecb; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .results-container { margin-top: 40px; }
+        .slide { background-color: white; border: 1px solid #ddd; margin-bottom: 20px; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); min-height: 250px; }
+        .plan-container { background-color: #eef; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .plan-container h2 { margin-top: 0; }
+        pre { background-color: #f4f4f4; padding: 15px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; }
+        #loader { text-align: center; padding: 40px; font-size: 18px; display: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Presto ✨ Deck Generator</h1>
+    </header>
+
+    <main>
+        <div class="form-container">
+            <form id="deck-form">
+                <div class="form-group">
+                    <label for="topic">Topic</label>
+                    <input type="text" id="topic" name="topic" value="The Future of Renewable Energy" required>
+                </div>
+                <div class="form-group">
+                    <label for="slide_count">Number of Slides</label>
+                    <input type="number" id="slide_count" name="slide_count" value="3" min="1" max="10" required>
+                </div>
+                <div class="form-group">
+                    <label for="theme">Theme</label>
+                    <select id="theme" name="theme">
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="model">AI Model</label>
+                    <select id="model" name="model">
+                        <option value="gpt-4o-mini">GPT-4o Mini (Fast)</option>
+                        <option value="gpt-4o">GPT-4o (High Quality)</option>
+                    </select>
+                </div>
+                <button type="submit" id="generate-btn">Generate</button>
+            </form>
+        </div>
+
+        <div id="loader">Generating... Please wait.</div>
+
+        <div id="results" class="results-container"></div>
+    </main>
+
+    <script>
+        const form = document.getElementById('deck-form');
+        const generateBtn = document.getElementById('generate-btn');
+        const resultsContainer = document.getElementById('results');
+        const loader = document.getElementById('loader');
+        const themeSelect = document.getElementById('theme');
+
+        // --- Populate Themes Dropdown on Page Load ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/v1/themes');
+                if (!response.ok) {
+                    throw new Error('Could not fetch themes.');
+                }
+                const themes = await response.json();
+                
+                themes.forEach(theme => {
+                    const option = document.createElement('option');
+                    option.value = theme;
+                    // Capitalize first letter for display
+                    option.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+                    themeSelect.appendChild(option);
+                });
+
+            } catch (error) {
+                themeSelect.innerHTML = `<option value="">Error loading themes</option>`;
+                console.error(error);
+            }
+        });
+
+        // --- Form Submission Handler ---
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            const data = {
+                topic: formData.get('topic'),
+                slide_count: parseInt(formData.get('slide_count'), 10),
+                theme: formData.get('theme'),
+                model: formData.get('model'),
+            };
+
+            // Show loader and disable button
+            loader.style.display = 'block';
+            generateBtn.disabled = true;
+            resultsContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/v1/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'An unknown error occurred.');
+                }
+
+                const result = await response.json();
+                displayResults(result);
+
+            } catch (error) {
+                resultsContainer.innerHTML = `<p style="color: red;"><strong>Error:</strong> ${error.message}</p>`;
+            } finally {
+                // Hide loader and enable button
+                loader.style.display = 'none';
+                generateBtn.disabled = false;
+            }
+        });
+
+        function displayResults(result) {
+            resultsContainer.innerHTML = ''; // Clear previous results
+
+            // Display the plan
+            if (result.plan) {
+                const planContainer = document.createElement('div');
+                planContainer.className = 'plan-container';
+                planContainer.innerHTML = `<h2>Presentation Plan</h2><pre>${JSON.stringify(result.plan, null, 2)}</pre>`;
+                resultsContainer.appendChild(planContainer);
+            }
+
+            // Display the slides
+            result.slides_html.forEach((slideHtml, index) => {
+                const slideWrapper = document.createElement('div');
+                slideWrapper.className = 'slide';
+                
+                const slideHeader = document.createElement('h3');
+                slideHeader.textContent = `Slide ${index + 1}`;
+                slideWrapper.appendChild(slideHeader);
+
+                const slideContent = document.createElement('div');
+                slideContent.innerHTML = slideHtml;
+                slideWrapper.appendChild(slideContent);
+
+                resultsContainer.appendChild(slideWrapper);
+            });
+        }
+    </script>
+
+</body>
+</html>
