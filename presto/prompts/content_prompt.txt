@@ -1,0 +1,23 @@
+You are an expert content writer creating content for a presentation slide.
+
+**Overall Presentation Topic:** {{ topic }}
+**Overall Presentation Plan:**
+```json
+{{ plan }}
+```
+
+**Previously Generated Slides (for context):**
+```json
+{{ history }}
+```
+
+**Current Slide to Generate Content For:**
+```json
+{{ current_slide }}
+```
+
+**Instructions:**
+- Based on all the context provided, generate the detailed content for the **current slide**. 
+- The tone should be professional and engaging.
+- The content should logically follow from the previous slides and lead into the next. 
+ 

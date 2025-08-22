@@ -7,7 +7,14 @@ class PresentationRequest(BaseModel):
     model: Optional[str] = Field("gpt-4o-mini", json_schema_extra={"example": "gpt-4o-mini"})
     theme: Optional[str] = Field("modern", json_schema_extra={"example": "modern"})
 
-class PresentationResponse(BaseModel):
+class SlideOutline(BaseModel):
     title: str
-    slides_html: List[str]
-    plan: Optional[Dict[str, Any]] = None
+    layout: str
+
+class PresentationOutline(BaseModel):
+    slides: List[SlideOutline]
+     
+class SlideContent(BaseModel):
+    title: str
+    content: List[str] 
+ 

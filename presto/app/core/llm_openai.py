@@ -1,27 +1,41 @@
 import os
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
+
 from dotenv import load_dotenv
+from pydantic import BaseModel
+
+from typing import TypeVar, Union, cast
+T = TypeVar("T", bound=BaseModel)
 
 load_dotenv()
 
 aclient = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+   
+async def generate_content_openai(
+    prompt: str,
+    temperature: float = 0.7,
+    max_tokens: int = 2048,
+    model: str = "gpt-4o",
+    response_model: type[BaseModel] | None = None,
+) -> Union[str, T]:
+    messages: list[ChatCompletionMessageParam] = [
+        {"role": "user", "content": prompt},
+    ]
 
-async def generate_content_openai(prompt: str, model: str = "gpt-4o-mini") -> str:
-    """Generates content using the specified OpenAI model."""
-    if not aclient.api_key:
-        raise ValueError("OPENAI_API_KEY not found in environment variables.")
-
-    try:
-        chat_completion = await aclient.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
+    if response_model:
+        resp = await aclient.responses.parse(
             model=model,
+            input=messages,
+            temperature=temperature, 
+            text_format=response_model,
         )
-        return chat_completion.choices[0].message.content
-    except Exception as e:
-        print(f"Error generating content with OpenAI: {e}")
-        raise
+        return cast(T, resp.output_parsed)   
+    else:
+        response = await aclient.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return response.choices[0].message.content or ""

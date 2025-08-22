@@ -17,7 +17,8 @@
         button:hover { background-color: #005ecb; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
         .results-container { margin-top: 40px; }
-        .slide { background-color: white; border: 1px solid #ddd; margin-bottom: 20px; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); min-height: 250px; }
+        .slide { background-color: white; border: 1px solid #ddd; margin-bottom: 20px; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); min-height: 250px; opacity: 0; animation: fadeIn 0.5s forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .plan-container { background-color: #eef; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
         .plan-container h2 { margin-top: 0; }
         pre { background-color: #f4f4f4; padding: 15px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; }
@@ -74,19 +75,14 @@
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const response = await fetch('/api/v1/themes');
-                if (!response.ok) {
-                    throw new Error('Could not fetch themes.');
-                }
+                if (!response.ok) throw new Error('Could not fetch themes.');
                 const themes = await response.json();
-                
                 themes.forEach(theme => {
                     const option = document.createElement('option');
                     option.value = theme;
-                    // Capitalize first letter for display
                     option.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
                     themeSelect.appendChild(option);
                 });
-
             } catch (error) {
                 themeSelect.innerHTML = `<option value="">Error loading themes</option>`;
                 console.error(error);
@@ -96,7 +92,6 @@
         // --- Form Submission Handler ---
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const formData = new FormData(form);
             const data = {
                 topic: formData.get('topic'),
@@ -105,7 +100,6 @@
                 model: formData.get('model'),
             };
 
-            // Show loader and disable button
             loader.style.display = 'block';
             generateBtn.disabled = true;
             resultsContainer.innerHTML = '';
@@ -113,55 +107,55 @@
             try {
                 const response = await fetch('/api/v1/generate', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data),
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'An unknown error occurred.');
-                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-                const result = await response.json();
-                displayResults(result);
+                // Handle the stream
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop(); // Keep the last, possibly incomplete line
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const eventData = JSON.parse(line.substring(6));
+                            handleStreamEvent(eventData);
+                        }
+                    }
+                }
 
             } catch (error) {
                 resultsContainer.innerHTML = `<p style="color: red;"><strong>Error:</strong> ${error.message}</p>`;
             } finally {
-                // Hide loader and enable button
                 loader.style.display = 'none';
                 generateBtn.disabled = false;
             }
         });
 
-        function displayResults(result) {
-            resultsContainer.innerHTML = ''; // Clear previous results
-
-            // Display the plan
-            if (result.plan) {
+        function handleStreamEvent(event) {
+            if (event.type === 'plan') {
                 const planContainer = document.createElement('div');
                 planContainer.className = 'plan-container';
-                planContainer.innerHTML = `<h2>Presentation Plan</h2><pre>${JSON.stringify(result.plan, null, 2)}</pre>`;
+                planContainer.innerHTML = `<h2>Presentation Plan</h2><pre>${JSON.stringify(event.data, null, 2)}</pre>`;
                 resultsContainer.appendChild(planContainer);
-            }
-
-            // Display the slides
-            result.slides_html.forEach((slideHtml, index) => {
+            } else if (event.type === 'slide') {
                 const slideWrapper = document.createElement('div');
                 slideWrapper.className = 'slide';
-                
-                const slideHeader = document.createElement('h3');
-                slideHeader.textContent = `Slide ${index + 1}`;
-                slideWrapper.appendChild(slideHeader);
-
-                const slideContent = document.createElement('div');
-                slideContent.innerHTML = slideHtml;
-                slideWrapper.appendChild(slideContent);
-
+                slideWrapper.innerHTML = event.data.html;
                 resultsContainer.appendChild(slideWrapper);
-            });
+            } else if (event.type === 'error') {
+                resultsContainer.innerHTML += `<p style="color: red;"><strong>Stream Error:</strong> ${event.data.message}</p>`;
+            }
         }
     </script>
 
