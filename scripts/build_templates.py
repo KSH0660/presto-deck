@@ -3,6 +3,8 @@ import json
 import re
 import asyncio
 import sys
+import uuid
+import hashlib
 from pathlib import Path
 from pydantic import BaseModel, Field
 
@@ -15,6 +17,7 @@ from presto.app.core.llm_openai import generate_content_openai
 ASSET_DIR = Path("asset")
 TEMPLATE_DIR = Path("presto/templates")
 METADATA_FILE = TEMPLATE_DIR / "metadata.json"
+CACHE_FILE = TEMPLATE_DIR / ".template_cache.json"
 SLIDE_SELECTORS = [".slide", ".slide-container"]
 
 
@@ -59,25 +62,24 @@ def get_structural_info(slide_html: str) -> dict:
 
 
 async def process_slide(
-    slide_html: str,
-    head_content: str,
-    source_path: Path,
-    slide_index: int,
-    existing_metadata: dict,
-) -> tuple[str, dict]:
+    slide_html: str, head_content: str, source_path: Path, cache: dict
+) -> tuple[str, dict, str] | None:
     """Processes a single slide, saves it, and returns its AI-enriched metadata."""
-    theme_source = source_path.parent.name
-    template_id = f"{theme_source}_{source_path.stem}_{slide_index}"
+    content_hash = hashlib.sha256(slide_html.encode("utf-8")).hexdigest()
 
-    if template_id in existing_metadata:
-        print(f"Skipping existing template ID: {template_id}")
-        return None, None
+    if content_hash in cache:
+        template_id = cache[content_hash]
+        print(
+            f"Skipping cached content (Hash: {content_hash[:7]}... -> ID: {template_id})"
+        )
+        return None
 
+    template_id = uuid.uuid4().hex
     final_html = f"<!DOCTYPE html>\n<html>\n<head>\n{head_content}\n</head>\n<body>\n{slide_html}\n</body>\n</html>"
     template_filename = f"{template_id}.html"
     template_path = TEMPLATE_DIR / template_filename
 
-    print(f"Analyzing with LLM and creating new template: {template_path}")
+    print(f"New content detected. Analyzing with LLM (Hash: {content_hash[:7]}...)")
 
     try:
         prompt = create_enrichment_prompt(slide_html)
@@ -85,8 +87,8 @@ async def process_slide(
             prompt, response_model=EnrichedMetadata
         )
     except Exception as e:
-        print(f"Error during LLM enrichment for {template_id}: {e}")
-        return None, None
+        print(f"Error during LLM enrichment for new content: {e}")
+        return None
 
     template_path.write_text(final_html, encoding="utf-8")
 
@@ -101,7 +103,7 @@ async def process_slide(
         "template_path": str(template_path),
     }
 
-    return template_id, metadata
+    return template_id, metadata, content_hash
 
 
 def find_slides(html_content: str) -> list[str]:
@@ -109,7 +111,7 @@ def find_slides(html_content: str) -> list[str]:
     # This basic regex might not correctly handle complex nested divs.
     # For production, a proper HTML parser like BeautifulSoup is recommended.
     slides = re.findall(
-        r'<div class="slide(?:-container)?".*?>.*?</div>', html_content, re.DOTALL
+        r"<div class=\"slide(?:-container)?\".*?>.*?</div>", html_content, re.DOTALL
     )
     if not slides:
         body_match = re.search(r"<body>(.*?)</body>", html_content, re.DOTALL)
@@ -120,21 +122,20 @@ def find_slides(html_content: str) -> list[str]:
 
 async def main():
     """Main async function to build templates from assets."""
-    print("--- Starting AI-Powered Template Build Process ---")
-
-    if not ASSET_DIR.exists():
-        print(f"Asset directory not found: {ASSET_DIR}")
-        return
-
+    print("--- Starting Smart Template Build Process (with Caching) ---")
     TEMPLATE_DIR.mkdir(exist_ok=True)
 
-    all_metadata = {}
-    if METADATA_FILE.exists():
-        try:
-            all_metadata = json.loads(METADATA_FILE.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            print(f"Warning: Could not parse {METADATA_FILE}. Starting fresh.")
-            all_metadata = {}
+    # Load existing metadata and cache
+    all_metadata = (
+        json.loads(METADATA_FILE.read_text(encoding="utf-8"))
+        if METADATA_FILE.exists()
+        else {}
+    )
+    cache = (
+        json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+        if CACHE_FILE.exists()
+        else {}
+    )
 
     tasks = []
     for root, _, files in os.walk(ASSET_DIR):
@@ -150,29 +151,33 @@ async def main():
                 slides = find_slides(html_content)
 
                 if not slides:
-                    print(f"Could not find any slide content in {source_path}")
                     continue
 
                 print(f"\nProcessing {source_path}: Found {len(slides)} slide(s)")
-                for i, slide_html in enumerate(slides):
-                    task = process_slide(
-                        slide_html, head_content, source_path, i, all_metadata
+                for slide_html in slides:
+                    tasks.append(
+                        process_slide(slide_html, head_content, source_path, cache)
                     )
-                    tasks.append(task)
 
     results = await asyncio.gather(*tasks)
 
-    for template_id, metadata in results:
-        if template_id and metadata:
+    new_items_processed = 0
+    for result in results:
+        if result:
+            new_items_processed += 1
+            template_id, metadata, content_hash = result
             all_metadata[template_id] = metadata
+            cache[content_hash] = template_id
 
-    if all_metadata:
-        print(
-            f"\nWriting metadata for {len(all_metadata)} templates to {METADATA_FILE}"
-        )
+    if new_items_processed > 0:
+        print(f"\nProcessed {new_items_processed} new items.")
         METADATA_FILE.write_text(
             json.dumps(all_metadata, indent=4, ensure_ascii=False), encoding="utf-8"
         )
+        CACHE_FILE.write_text(json.dumps(cache, indent=4), encoding="utf-8")
+        print(f"Successfully updated {METADATA_FILE} and {CACHE_FILE}")
+    else:
+        print("\nNo new content found. All templates are up-to-date.")
 
     print("\n--- Template Build Process Finished ---")
 
