@@ -21,6 +21,9 @@ jobs:
       with:
         python-version: '3.11'
 
+    - name: Set dummy OPENAI_API_KEY for tests
+      run: echo "OPENAI_API_KEY=sk-test-dummy-key" >> $GITHUB_ENV
+
     - name: Install uv
       run: pip install uv
 
