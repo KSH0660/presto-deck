@@ -1,0 +1,114 @@
+{
+    "sample1_1_0": {
+        "template_id": "sample1_1_0",
+        "source_file": "asset/sample1/1.html",
+        "theme": "Pastel Infographic",
+        "description": "중앙의 원형 다이어그램과 네 개의 모서리 정보 박스로 구성된 인포그래픽 템플릿. 핵심 주제와 4가지 하위 요소를 시각적으로 연결하여 보여주기에 효과적입니다.",
+        "tags": ["인포그래픽", "다이어그램", "4요소", "중앙집중형"],
+        "use_case": "핵심 서비스의 4가지 주요 특징을 소개할 때, 프로젝트의 4단계 구성안을 설명할 때 사용합니다.",
+        "structure": {
+            "span": 1,
+            "div": 2
+        },
+        "template_path": "presto/templates/sample1_1_0.html"
+    },
+    "sample1_2_0": {
+        "template_id": "sample1_2_0",
+        "source_file": "asset/sample1/2.html",
+        "theme": "Pastel Infographic",
+        "description": "상단 타이틀 바와 함께 여러 아이콘과 텍스트 박스를 조합한 카드뉴스 스타일 템플릿. 시각적 아이콘을 통해 정보를 빠르게 전달하는 데 유용합니다.",
+        "tags": ["카드뉴스", "아이콘", "시각적 정보"],
+        "use_case": "SNS 콘텐츠 스타일의 정보를 전달할 때, 여러 개의 소주제를 아이콘과 함께 나열할 때 사용합니다.",
+        "structure": {
+            "span": 1,
+            "div": 2
+        },
+        "template_path": "presto/templates/sample1_2_0.html"
+    },
+    "sample1_3_0": {
+        "template_id": "sample1_3_0",
+        "source_file": "asset/sample1/3.html",
+        "theme": "Pastel Infographic",
+        "description": "커다란 파이 차트(원형 그래프)를 중심으로 데이터를 시각화하는 템플릿. 전체 예산, 시장 점유율 등 비율 데이터를 명확하게 보여줄 수 있습니다.",
+        "tags": ["데이터 시각화", "차트", "원형 그래프", "비율"],
+        "use_case": "설문조사 결과의 응답 비율을 보여줄 때, 프로젝트 예산의 항목별 비중을 설명할 때 사용합니다.",
+        "structure": {
+            "span": 1,
+            "div": 2
+        },
+        "template_path": "presto/templates/sample1_3_0.html"
+    },
+    "sample2_1_0": {
+        "template_id": "sample2_1_0",
+        "source_file": "asset/sample2/1.html",
+        "theme": "Korean Traditional",
+        "description": "한국적인 미학이 돋보이는 타임라인 템플릿. 중앙의 선과 점들을 이용해 시간의 흐름이나 발전 단계를 우아하게 표현합니다.",
+        "tags": ["타임라인", "연대기", "프로세스", "한국적 테마"],
+        "use_case": "회사의 연혁을 소개할 때, 역사적 사건의 흐름을 설명할 때, 프로젝트의 단계별 진행 상황을 보고할 때 사용합니다.",
+        "structure": {
+            "span": 2,
+            "div": 2,
+            "h1": 1,
+            "p": 1
+        },
+        "template_path": "presto/templates/sample2_1_0.html"
+    },
+    "sample2_1_1": {
+        "template_id": "sample2_1_1",
+        "source_file": "asset/sample2/1.html",
+        "theme": "Korean Traditional",
+        "description": "세 가지 핵심 원칙이나 아이디어를 원형 그래픽과 함께 설명하는 템플릿. 텍스트와 시각적 요소를 결합하여 개념을 명확히 전달합니다.",
+        "tags": ["3요소", "핵심 원칙", "개념 설명", "한국적 테마"],
+        "use_case": "기업의 핵심 가치 3가지를 소개할 때, 제품의 세 가지 주요 원리를 설명할 때 사용합니다.",
+        "structure": {
+            "span": 2,
+            "div": 2,
+            "h1": 1,
+            "p": 1
+        },
+        "template_path": "presto/templates/sample2_1_1.html"
+    },
+    "sample2_1_2": {
+        "template_id": "sample2_1_2",
+        "source_file": "asset/sample2/1.html",
+        "theme": "Korean Traditional",
+        "description": "왼쪽에는 이미지, 오른쪽에는 제목과 본문이 배치된 클래식한 2단 레이아웃 템플릿. 감성적인 이미지와 함께 메시지를 전달하기에 좋습니다.",
+        "tags": ["2단 레이아웃", "이미지+텍스트", "소개", "한국적 테마"],
+        "use_case": "특정 인물이나 제품을 이미지와 함께 소개할 때, 감성적인 메시지로 프레젠테이션의 한 챕터를 시작할 때 사용합니다.",
+        "structure": {
+            "span": 2,
+            "div": 2,
+            "h1": 1,
+            "p": 1
+        },
+        "template_path": "presto/templates/sample2_1_2.html"
+    },
+    "sample3_1_0": {
+        "template_id": "sample3_1_0",
+        "source_file": "asset/sample3/1.html",
+        "theme": "Modern Business",
+        "description": "비즈니스 성과 보고를 위한 전문적인 템플릿. 좌측에 핵심 성과와 강점을 나열하고, 우측에 막대 그래프로 시각적 데이터를 제시합니다.",
+        "tags": ["성과 보고", "비즈니스", "데이터", "그래프", "전문적"],
+        "use_case": "분기별 실적 보고, 프로젝트 성과 요약, 경쟁사 대비 강점 분석에 사용합니다.",
+        "structure": {
+            "div": 2,
+            "h1": 1,
+            "p": 1
+        },
+        "template_path": "presto/templates/sample3_1_0.html"
+    },
+    "sample3_1_1": {
+        "template_id": "sample3_1_1",
+        "source_file": "asset/sample3/1.html",
+        "theme": "Modern Business",
+        "description": "As-is(현상)와 To-be(목표)를 좌우로 명확하게 비교하는 템플릿. 문제점과 개선 방향을 한눈에 보여주는 데 매우 효과적입니다.",
+        "tags": ["As-is/To-be", "비교", "분석", "문제 해결", "전략"],
+        "use_case": "시스템 개선 제안, 사업 전략의 변화를 설명할 때, 문제점과 해결책을 동시에 제시할 때 사용합니다.",
+        "structure": {
+            "div": 2,
+            "h1": 1,
+            "p": 1
+        },
+        "template_path": "presto/templates/sample3_1_1.html"
+    }
+}

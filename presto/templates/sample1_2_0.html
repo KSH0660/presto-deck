@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>템플릿 2: 아이콘 카드 뉴스</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+    body {
+        font-family: 'Malgun Gothic', sans-serif;
+        background-color: #f0f0f0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+    .slide-container {
+        width: 800px;
+        height: 450px;
+        background-color: white;
+        padding: 30px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        border: 2px solid #e89999;
+    }
+    .title-bar {
+        background-color: #f3d9d9;
+        color: #333;
+        padding: 10px 20px;
+        font-size: 24px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        border: 2px solid #e89999;
+        position: relative;
+    }
+    .title-number {
+        background-color: #fff;
+        color: #e89999;
+        padding: 5px 15px;
+        margin-right: 15px;
+        font-size: 28px;
+        font-weight: bold;
+        border: 2px solid #e89999;
+    }
+    .content-area {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+    .icon-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .icon-grid .fas, .icon-grid .far {
+        font-size: 24px;
+        color: #555;
+    }
+    .central-illustration {
+        text-align: center;
+    }
+    .central-illustration .fa-user-nurse {
+        font-size: 100px;
+        color: #e89999;
+    }
+    .bottom-icons {
+        display: flex;
+        justify-content: space-around;
+        width: 100%;
+        margin-top: 20px;
+        font-size: 30px;
+        color: #555;
+    }
+    .text-box-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        margin-top: 20px;
+    }
+    .text-box {
+        background-color: #f3d9d9;
+        border: 2px solid #e89999;
+        padding: 10px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+    }
+</style>
+
+</head>
+<body>
+<div class="slide-container">
+    <div class="title-bar">
+        <span class="title-number">2</span> 제목
+    </div>
+</body>
+</html>
