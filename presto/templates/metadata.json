@@ -1,114 +1,158 @@
 {
-    "sample1_1_0": {
-        "template_id": "sample1_1_0",
-        "source_file": "asset/sample1/1.html",
-        "theme": "Pastel Infographic",
-        "description": "중앙의 원형 다이어그램과 네 개의 모서리 정보 박스로 구성된 인포그래픽 템플릿. 핵심 주제와 4가지 하위 요소를 시각적으로 연결하여 보여주기에 효과적입니다.",
-        "tags": ["인포그래픽", "다이어그램", "4요소", "중앙집중형"],
-        "use_case": "핵심 서비스의 4가지 주요 특징을 소개할 때, 프로젝트의 4단계 구성안을 설명할 때 사용합니다.",
-        "structure": {
-            "span": 1,
-            "div": 2
-        },
-        "template_path": "presto/templates/sample1_1_0.html"
-    },
-    "sample1_2_0": {
-        "template_id": "sample1_2_0",
-        "source_file": "asset/sample1/2.html",
-        "theme": "Pastel Infographic",
-        "description": "상단 타이틀 바와 함께 여러 아이콘과 텍스트 박스를 조합한 카드뉴스 스타일 템플릿. 시각적 아이콘을 통해 정보를 빠르게 전달하는 데 유용합니다.",
-        "tags": ["카드뉴스", "아이콘", "시각적 정보"],
-        "use_case": "SNS 콘텐츠 스타일의 정보를 전달할 때, 여러 개의 소주제를 아이콘과 함께 나열할 때 사용합니다.",
-        "structure": {
-            "span": 1,
-            "div": 2
-        },
-        "template_path": "presto/templates/sample1_2_0.html"
-    },
-    "sample1_3_0": {
-        "template_id": "sample1_3_0",
-        "source_file": "asset/sample1/3.html",
-        "theme": "Pastel Infographic",
-        "description": "커다란 파이 차트(원형 그래프)를 중심으로 데이터를 시각화하는 템플릿. 전체 예산, 시장 점유율 등 비율 데이터를 명확하게 보여줄 수 있습니다.",
-        "tags": ["데이터 시각화", "차트", "원형 그래프", "비율"],
-        "use_case": "설문조사 결과의 응답 비율을 보여줄 때, 프로젝트 예산의 항목별 비중을 설명할 때 사용합니다.",
-        "structure": {
-            "span": 1,
-            "div": 2
-        },
-        "template_path": "presto/templates/sample1_3_0.html"
-    },
     "sample2_1_0": {
         "template_id": "sample2_1_0",
         "source_file": "asset/sample2/1.html",
-        "theme": "Korean Traditional",
-        "description": "한국적인 미학이 돋보이는 타임라인 템플릿. 중앙의 선과 점들을 이용해 시간의 흐름이나 발전 단계를 우아하게 표현합니다.",
-        "tags": ["타임라인", "연대기", "프로세스", "한국적 테마"],
-        "use_case": "회사의 연혁을 소개할 때, 역사적 사건의 흐름을 설명할 때, 프로젝트의 단계별 진행 상황을 보고할 때 사용합니다.",
+        "theme": "전통적 예술",
+        "description": "이 슬라이드는 한국무용의 전통적이고 우아한 느낌을 강조하기 위해 꽃 모양 장식을 사용하고 있습니다. 헤더에 큰 제목과 하위 제목을 배치하여 시각적인 중심을 잡고 있습니다.",
+        "tags": [
+            "한국무용",
+            "전통",
+            "꽃 장식",
+            "헤더 중심",
+            "우아함"
+        ],
+        "use_case": "한국 전통 예술이나 문화에 대한 발표, 특히 한국무용의 역사나 발전을 설명하는 자료에 효과적으로 활용될 수 있습니다.",
         "structure": {
-            "span": 2,
-            "div": 2,
             "h1": 1,
-            "p": 1
+            "p": 1,
+            "div": 2,
+            "span": 2
         },
         "template_path": "presto/templates/sample2_1_0.html"
     },
     "sample2_1_1": {
         "template_id": "sample2_1_1",
         "source_file": "asset/sample2/1.html",
-        "theme": "Korean Traditional",
-        "description": "세 가지 핵심 원칙이나 아이디어를 원형 그래픽과 함께 설명하는 템플릿. 텍스트와 시각적 요소를 결합하여 개념을 명확히 전달합니다.",
-        "tags": ["3요소", "핵심 원칙", "개념 설명", "한국적 테마"],
-        "use_case": "기업의 핵심 가치 3가지를 소개할 때, 제품의 세 가지 주요 원리를 설명할 때 사용합니다.",
+        "theme": "전통 예술",
+        "description": "이 슬라이드는 한국무용의 기본 원리를 소개하는 디자인으로, 전통적이면서도 우아한 느낌을 강조합니다. 헤더 양쪽에 배치된 꽃 모양 장식이 전통적인 미적 요소를 부각시킵니다.",
+        "tags": [
+            "한국무용",
+            "전통",
+            "우아함",
+            "꽃 장식",
+            "예술"
+        ],
+        "use_case": "한국 전통 예술이나 무용을 소개하는 교육용 프레젠테이션에 적합합니다.",
         "structure": {
-            "span": 2,
-            "div": 2,
             "h1": 1,
-            "p": 1
+            "p": 1,
+            "div": 2,
+            "span": 2
         },
         "template_path": "presto/templates/sample2_1_1.html"
     },
     "sample2_1_2": {
         "template_id": "sample2_1_2",
         "source_file": "asset/sample2/1.html",
-        "theme": "Korean Traditional",
-        "description": "왼쪽에는 이미지, 오른쪽에는 제목과 본문이 배치된 클래식한 2단 레이아웃 템플릿. 감성적인 이미지와 함께 메시지를 전달하기에 좋습니다.",
-        "tags": ["2단 레이아웃", "이미지+텍스트", "소개", "한국적 테마"],
-        "use_case": "특정 인물이나 제품을 이미지와 함께 소개할 때, 감성적인 메시지로 프레젠테이션의 한 챕터를 시작할 때 사용합니다.",
+        "theme": "우아한 플로럴",
+        "description": "이 슬라이드는 우아한 플로럴 디자인이 특징으로, 양쪽에 있는 꽃 모양 장식이 부드러운 분위기를 연출합니다. 깔끔한 레이아웃과 함께 제목을 강조하여 내용을 정리하는 데 적합합니다.",
+        "tags": [
+            "플로럴",
+            "우아한 디자인",
+            "정리",
+            "타이틀 강조"
+        ],
+        "use_case": "이 템플릿은 프레젠테이션의 마지막 부분에서 최종 내용을 정리할 때 효과적으로 사용할 수 있습니다.",
         "structure": {
-            "span": 2,
-            "div": 2,
             "h1": 1,
-            "p": 1
+            "p": 1,
+            "div": 2,
+            "span": 2
         },
         "template_path": "presto/templates/sample2_1_2.html"
     },
     "sample3_1_0": {
         "template_id": "sample3_1_0",
         "source_file": "asset/sample3/1.html",
-        "theme": "Modern Business",
-        "description": "비즈니스 성과 보고를 위한 전문적인 템플릿. 좌측에 핵심 성과와 강점을 나열하고, 우측에 막대 그래프로 시각적 데이터를 제시합니다.",
-        "tags": ["성과 보고", "비즈니스", "데이터", "그래프", "전문적"],
-        "use_case": "분기별 실적 보고, 프로젝트 성과 요약, 경쟁사 대비 강점 분석에 사용합니다.",
+        "theme": "모던 비즈니스",
+        "description": "이 슬라이드는 깔끔하고 전문적인 비즈니스 테마를 중심으로 디자인되었습니다. 제목과 부제목의 명확한 구분이 정보 전달에 효과적이며, 전체적으로 정돈된 레이아웃을 제공합니다.",
+        "tags": [
+            "비즈니스",
+            "전문적",
+            "깔끔한 디자인",
+            "정보 전달",
+            "명확한 구조"
+        ],
+        "use_case": "기업 보고서 발표나 비즈니스 미팅에서 효과적으로 활용될 수 있는 템플릿입니다.",
         "structure": {
-            "div": 2,
             "h1": 1,
-            "p": 1
+            "p": 1,
+            "div": 2
         },
         "template_path": "presto/templates/sample3_1_0.html"
     },
     "sample3_1_1": {
         "template_id": "sample3_1_1",
         "source_file": "asset/sample3/1.html",
-        "theme": "Modern Business",
-        "description": "As-is(현상)와 To-be(목표)를 좌우로 명확하게 비교하는 템플릿. 문제점과 개선 방향을 한눈에 보여주는 데 매우 효과적입니다.",
-        "tags": ["As-is/To-be", "비교", "분석", "문제 해결", "전략"],
-        "use_case": "시스템 개선 제안, 사업 전략의 변화를 설명할 때, 문제점과 해결책을 동시에 제시할 때 사용합니다.",
+        "theme": "모던 비즈니스",
+        "description": "이 슬라이드는 비즈니스 프레젠테이션에 적합한 모던하고 깔끔한 디자인을 가지고 있습니다. 단순하면서도 명확한 레이아웃이 특징이며, 제목과 부제목을 강조합니다.",
+        "tags": [
+            "비즈니스",
+            "모던",
+            "프레젠테이션",
+            "깔끔한 디자인"
+        ],
+        "use_case": "회사 회의나 사업 제안 발표 등에서 효과적으로 사용할 수 있습니다.",
         "structure": {
-            "div": 2,
             "h1": 1,
-            "p": 1
+            "p": 1,
+            "div": 2
         },
         "template_path": "presto/templates/sample3_1_1.html"
+    },
+    "sample1_3_0": {
+        "template_id": "sample1_3_0",
+        "source_file": "asset/sample1/3.html",
+        "theme": "모던 비즈니스",
+        "description": "이 슬라이드는 깔끔하고 현대적인 레이아웃을 특징으로 하며, 비즈니스 프레젠테이션에 적합합니다. 슬라이드 번호와 제목이 명확하게 표시되어 정보 전달이 용이합니다.",
+        "tags": [
+            "비즈니스",
+            "깔끔한 디자인",
+            "현대적",
+            "정보 전달",
+            "효율적"
+        ],
+        "use_case": "기업의 회의나 보고서 발표에서 예산 관련 내용을 명확하게 전달할 때 유용합니다.",
+        "structure": {
+            "div": 2,
+            "span": 1
+        },
+        "template_path": "presto/templates/sample1_3_0.html"
+    },
+    "sample1_2_0": {
+        "template_id": "sample1_2_0",
+        "source_file": "asset/sample1/2.html",
+        "theme": "미니멀리스트",
+        "description": "이 슬라이드는 깔끔하고 단순한 미니멀리스트 디자인을 특징으로 합니다. 제목과 슬라이드 번호만으로 구성된 명확한 구조로, 정보 전달에 집중할 수 있습니다.",
+        "tags": [
+            "미니멀리스트",
+            "단순함",
+            "명확한 구조"
+        ],
+        "use_case": "이 템플릿은 정보 전달이 중요한 강의나 발표에서 효과적으로 사용될 수 있습니다.",
+        "structure": {
+            "div": 2,
+            "span": 1
+        },
+        "template_path": "presto/templates/sample1_2_0.html"
+    },
+    "sample1_1_0": {
+        "template_id": "sample1_1_0",
+        "source_file": "asset/sample1/1.html",
+        "theme": "미니멀 비즈니스",
+        "description": "이 슬라이드는 깔끔하고 단순한 디자인으로, 제목과 슬라이드 번호를 강조합니다. 미니멀한 스타일을 통해 콘텐츠 전달에 집중할 수 있는 구조입니다.",
+        "tags": [
+            "미니멀",
+            "비즈니스",
+            "제목 강조",
+            "슬라이드 번호",
+            "깔끔한 디자인"
+        ],
+        "use_case": "비즈니스 회의나 프레젠테이션에서 핵심 정보를 간결하게 전달할 때 유용합니다.",
+        "structure": {
+            "div": 2,
+            "span": 1
+        },
+        "template_path": "presto/templates/sample1_1_0.html"
     }
 }
