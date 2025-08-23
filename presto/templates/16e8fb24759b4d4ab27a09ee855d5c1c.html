@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>한국 무용 프레젠테이션 테마</title>
@@ -46,7 +47,7 @@
         margin: 0;
         font-family: 'Noto Serif KR', serif; /* 제목 폰트 */
     }
-    
+
     .header h1 { font-size: 2.2rem; }
     .header p { font-size: 1rem; letter-spacing: 2px; opacity: 0.8; }
     .flower {
@@ -67,7 +68,7 @@
         justify-content: center;
         align-items: center;
     }
-    
+
     /* 1. 타임라인 슬라이드 */
     .timeline-container {
       width: 100%;
@@ -149,7 +150,7 @@
     .circle-white { background-color: #fff; color: #333; border: 1px solid #ddd;}
     .circle-gold { background-color: #D6C3A5; color: #333; }
     .circle-navy { background-color: #2C3347; }
-    
+
     .principles-text {
         display: flex;
         flex-direction: column;
@@ -164,7 +165,7 @@
     .line-connector::after { content: '●'; color: #aaa; margin-left: -5px; }
     .principle-desc h3 { margin: 0 0 0.5rem 0; font-family: 'Noto Serif KR', serif; }
     .principle-desc p { margin: 0; font-size: 0.85rem; color: #555; }
-    
+
     /* 3. 이미지 + 텍스트 슬라이드 (좌/우) */
     .dark-bg { background-color: #2C3347; color: white; }
     .image-text-layout {
@@ -198,7 +199,7 @@
       font-size: 0.9rem;
       opacity: 0.8;
     }
-    
+
     /* 4. 특징 나열 슬라이드 */
     .feature-list-layout {
         display: grid;
@@ -273,53 +274,9 @@
         margin: 1rem 0;
     }
 </style>
+
 </head>
 <body>
-
-<div class="slide">
-    <div class="header">
-        <span class="flower left">❁</span>
-        <h1>한국무용의 흐름</h1>
-        <p>HISTORY</p>
-        <span class="flower right">❁</span>
-    </div>
-    <div class="content">
-        <div class="timeline-container">
-            <div class="timeline-row">
-                <div class="timeline-item">
-                    <h3>고려의 한국 무용</h3>
-                    <p>세부 내용을 적어주세요. 서체는 순바탕 가는체입니다. 폰트사이즈는 18입니다.</p>
-                </div>
-                <div class="timeline-item">
-                    <h3>근대의 한국 무용</h3>
-                    <p>세부 내용을 적어주세요. 서체는 순바탕 가는체입니다. 폰트사이즈는 18입니다.</p>
-                </div>
-            </div>
-            <div class="timeline-line">
-                <div class="timeline-dot dot-1"><span>01</span></div>
-                <div class="timeline-dot dot-2"><span>02</span></div>
-                <div class="timeline-dot dot-3"><span>03</span></div>
-                <div class="timeline-dot dot-4"><span>04</span></div>
-                <div class="timeline-dot dot-5"><span>05</span></div>
-            </div>
-            <div class="timeline-row">
-                <div class="timeline-item">
-                    <h3>고대의 한국 무용</h3>
-                    <p>세부 내용을 적어주세요. 서체는 순바탕 가는체입니다. 폰트사이즈는 18입니다.</p>
-                </div>
-                <div class="timeline-item">
-                    <h3>조선의 한국 무용</h3>
-                    <p>세부 내용을 적어주세요. 서체는 순바탕 가는체입니다. 폰트사이즈는 18입니다.</p>
-                </div>
-                 <div class="timeline-item">
-                    <h3>현대의 한국 무용</h3>
-                    <p>세부 내용을 적어주세요. 서체는 순바탕 가는체입니다. 폰트사이즈는 18입니다.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="slide">
      <div class="header">
         <span class="flower left">❁</span>
@@ -327,105 +284,5 @@
         <p>BASIC PRINCIPLES</p>
         <span class="flower right">❁</span>
     </div>
-    <div class="content">
-        <div class="principles-container">
-            <div class="principles-text">
-                <div class="principle-item">
-                     <div class="principle-desc" style="text-align: right;">
-                        <h3>기본원리 01 : 정</h3>
-                        <p>세부 내용을 적어주세요.<br>서체는 순바탕 가는체입니다.</p>
-                    </div>
-                    <div class="line-connector"></div>
-                </div>
-                 <div class="principle-item">
-                     <div class="principle-desc" style="text-align: right;">
-                        <h3>기본원리 02 : 중</h3>
-                        <p>세부 내용을 적어주세요.<br>서체는 순바탕 가는체입니다.</p>
-                    </div>
-                    <div class="line-connector"></div>
-                </div>
-                 <div class="principle-item">
-                     <div class="principle-desc" style="text-align: right;">
-                        <h3>기본원리 03 : 동</h3>
-                        <p>세부 내용을 적어주세요.<br>서체는 순바탕 가는체입니다.</p>
-                    </div>
-                    <div class="line-connector"></div>
-                </div>
-            </div>
-            <div class="principles-graphics">
-                <div class="circle circle-white">정<span>STOP</span></div>
-                <div class="circle circle-gold">중<span>MIDPOINT</span></div>
-                <div class="circle circle-navy">동<span>MOVE</span></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<div class="slide dark-bg">
-    <div class="content" style="padding:0;">
-        <div class="image-text-layout">
-            <div class="image-frame">
-                <img src="https://images.unsplash.com/photo-1593348981792-7b569e9549a8?ixlib=rb-4.0.3&q=85&fm=jpg&crop=entropy&cs=srgb&w=600" alt="한국 무용수">
-            </div>
-            <div class="text-content">
-                <h2>제목을<br>입력해 주세요</h2>
-                <p>관련된 세부 텍스트를 적어주세요. 사용된 폰트는 순바탕 가는체입니다. 폰트의 사이즈는 18이고 자간은 -14로 두었습니다. 행간은 75이며 장평은 100%입니다.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="slide dark-bg">
-    <div class="content" style="padding:0;">
-        <div class="feature-list-layout">
-            <div class="feature-list">
-                <h2>한국무용의 특징</h2>
-                <div class="feature-item">
-                    <div class="number">01</div>
-                    <p>관련된 세부 텍스트를 적어주세요. 사용된 폰트는 순바탕 가는체입니다 폰트의 사이즈는 18이고 자간은 -14로 두었습니다.</p>
-                </div>
-                <div class="feature-item">
-                    <div class="number">02</div>
-                    <p>관련된 세부 텍스트를 적어주세요. 사용된 폰트는 순바탕 가는체입니다 폰트의 사이즈는 18이고 자간은 -14로 두었습니다.</p>
-                </div>
-                <div class="feature-item">
-                    <div class="number">03</div>
-                    <p>관련된 세부 텍스트를 적어주세요. 사용된 폰트는 순바탕 가는체입니다 폰트의 사이즈는 18이고 자간은 -14로 두었습니다.</p>
-                </div>
-            </div>
-            <div class="image-right">
-                <img src="https://images.unsplash.com/photo-1622039603348-b541a54743e8?ixlib=rb-4.0.3&q=85&fm=jpg&crop=entropy&cs=srgb&w=600" alt="한국 무용수의 옆모습">
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<div class="slide">
-    <div class="header">
-        <span class="flower left">❁</span>
-        <h1>최종 내용 정리</h1>
-        <p>PLEASE ENTER A TITLE</p>
-        <span class="flower right">❁</span>
-    </div>
-    <div class="content">
-        <div class="summary-container">
-            <div class="summary-box">
-                <h3>텍스트를 입력해주세요</h3>
-                <div class="divider-icon">◆◆◆</div>
-                <p>관련된 세부 텍스트를 적어주세요. 사용된 폰트는 순바탕 가는체입니다 폰트의 사이즈는 18이고 자간은 -14로 두었습니다. 행간은 75이며 장평은 100%입니다.</p>
-                <p>관련된 세부 텍스트를 적어주세요. 사용된 폰트는 순바탕 가는체입니다 폰트의 사이즈는 18이고 자간은 -14로 두었습니다.</p>
-            </div>
-            <div class="summary-box">
-                <h3>텍스트를 입력해주세요</h3>
-                <div class="divider-icon">◆◆◆</div>
-                <p>관련된 세부 텍스트를 적어주세요. 사용된 폰트는 순바탕 가는체입니다 폰트의 사이즈는 18이고 자간은 -14로 두었습니다. 행간은 75이며 장평은 100%입니다.</p>
-                <p>관련된 세부 텍스트를 적어주세요. 사용된 폰트는 순바탕 가는체입니다 폰트의 사이즈는 18이고 자간은 -14로 두었습니다.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
 </body>
 </html>
