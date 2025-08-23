@@ -20,7 +20,6 @@ You are an expert content writer creating content for a presentation slide.
 {{ enriched_context }}
 
 **Instructions:**
-- Based on all the context provided, including the research context, generate the detailed content for the **current slide**. 
+- Based on all the context provided, including the research context, generate the detailed content for the **current slide**.
 - The tone should be professional and engaging.
-- The content should logically follow from the previous slides and lead into the next. 
- 
+- The content should logically follow from the previous slides and lead into the next.

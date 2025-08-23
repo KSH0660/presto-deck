@@ -6,12 +6,14 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 
 from typing import TypeVar, Union, cast
+
 T = TypeVar("T", bound=BaseModel)
 
 load_dotenv()
 
 aclient = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-   
+
+
 async def generate_content_openai(
     prompt: str,
     temperature: float = 0.7,
@@ -27,10 +29,10 @@ async def generate_content_openai(
         resp = await aclient.responses.parse(
             model=model,
             input=messages,
-            temperature=temperature, 
+            temperature=temperature,
             text_format=response_model,
         )
-        return cast(T, resp.output_parsed)   
+        return cast(T, resp.output_parsed)
     else:
         response = await aclient.chat.completions.create(
             model=model,

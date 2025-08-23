@@ -2,6 +2,7 @@ import os
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from presto.app.core.config import settings
 
+
 class TemplateService:
     def __init__(self):
         self.template_env = Environment(loader=FileSystemLoader(settings.TEMPLATE_DIR))
@@ -13,7 +14,11 @@ class TemplateService:
             theme_dir = os.path.join(settings.TEMPLATE_DIR, theme)
             if not os.path.isdir(theme_dir):
                 return []
-            return [f.replace(".html", "") for f in os.listdir(theme_dir) if f.endswith(".html")]
+            return [
+                f.replace(".html", "")
+                for f in os.listdir(theme_dir)
+                if f.endswith(".html")
+            ]
         except Exception:
             return []
 

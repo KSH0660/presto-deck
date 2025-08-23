@@ -19,16 +19,15 @@ async def test_generate_slide_html():
     """Unit test for the generate_slide_html function."""
     # 1. Arrange: Prepare the test data and mock.
     # We need sample input data for our function.
-    sample_slide_data = {
-        "title": "Test Title",
-        "content": ["Point 1", "Point 2"]
-    }
+    sample_slide_data = {"title": "Test Title", "content": ["Point 1", "Point 2"]}
     # This is the fake HTML response we want our mock to return.
     expected_html = "<h1>Test Title</h1><ul><li>Point 1</li><li>Point 2</li></ul>"
 
     # Patch the function that our unit depends on. `generate_slide_html` calls
     # `generate_content_openai`, so we replace it with a mock.
-    with patch("presto.app.api.v1.generate.generate_content_openai", new_callable=AsyncMock) as mock_llm_call:
+    with patch(
+        "presto.app.api.v1.generate.generate_content_openai", new_callable=AsyncMock
+    ) as mock_llm_call:
         # Configure the mock to return our fake HTML.
         mock_llm_call.return_value = expected_html
 
