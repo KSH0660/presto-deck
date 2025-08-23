@@ -46,6 +46,9 @@ class PresentationService:
         )
         outline_prompt = outline_prompt_template.render(
             topic=request.topic,
+            audience=request.audience,
+            key_points=request.key_points,
+            tone=request.tone,
             slide_count=request.slide_count,
             layouts=available_layouts,
             enriched_context=enriched_context,  # 추가된 컨텍스트
@@ -67,6 +70,9 @@ class PresentationService:
         )
         content_prompt = content_prompt_template.render(
             topic=request.topic,
+            audience=request.audience,
+            key_points=request.key_points,
+            tone=request.tone,
             plan=plan,
             history=generated_slides_history,
             current_slide=slide_outline,
@@ -98,10 +104,10 @@ class PresentationService:
         try:
             # 1. Get available layouts
             available_layouts = self.template_service.get_available_layouts(
-                request.theme
+                request.template_name
             )
             if not available_layouts:
-                raise ValueError(f"Theme '{request.theme}' not found.")
+                raise ValueError(f"Template '{request.template_name}' not found.")
 
             # 1. Gather and enrich resources
             enriched_context_obj = await self._gather_and_enrich_resources(
@@ -145,7 +151,7 @@ class PresentationService:
                 generated_slides_history.append(full_slide_data)
 
                 rendered_html = self.template_service.render_slide_html(
-                    request.theme,
+                    request.template_name,
                     getattr(slide_outline, "layout", "list"),
                     full_slide_data,
                 )
