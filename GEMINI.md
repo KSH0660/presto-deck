@@ -11,7 +11,7 @@
 - **Dependencies:** Manage dependencies through a `requirements.txt` file.
 - **Configuration:** Use a `.env` file for environment variables like API keys. Load them using a settings module in `app/core/config.py`.
 - **Project Structure:** Adhere strictly to the following file structure. When you create or modify a file, always specify its full path (e.g., `app/services/generator.py`).
-- **Comment:** If complex funcs, always write explanations as comments in Korean.
+- **Comment:** Write simple docstring in Korean.
 
 ```plaintext
 presto/

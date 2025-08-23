@@ -1,0 +1,15 @@
+You are an expert researcher and summarizer.
+Your task is to gather comprehensive and relevant information about the given topic and then summarize it concisely.
+The summarized information will be used to generate a presentation outline and detailed slide content.
+
+**Topic:** "{{ topic }}"
+
+**Raw Content for Analysis:**
+{{ raw_content }}
+
+**Instructions:**
+1.  Analyze the provided "Raw Content for Analysis" in relation to the topic.
+2.  Focus on information that would be essential for creating an informative and engaging presentation.
+3.  Summarize the gathered information into a coherent and well-structured text.
+4.  Ensure the summary is factual, objective, and provides a solid foundation for a presentation.
+5.  The output should be a plain text summary, suitable for direct inclusion in other prompts.
