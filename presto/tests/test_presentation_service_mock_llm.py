@@ -1,6 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, patch, Mock
-from presto.app.services.presentation import PresentationService
+from unittest.mock import AsyncMock, patch
 from presto.app.models.presentation import (
     PresentationRequest,
     PresentationOutline,
@@ -8,27 +7,6 @@ from presto.app.models.presentation import (
     EnrichedContext,  # Added
     SlideContent,  # Added
 )
-from presto.app.services.template import TemplateService
-from presto.app.services.resource import ResourceService
-
-
-@pytest.fixture
-def mock_template_service():
-    mock = Mock(spec=TemplateService)
-    # Ensure get_prompt_template returns a mock object that has a 'render' method
-    mock.get_prompt_template.return_value.render.return_value = "mocked outline prompt"
-    return mock
-
-
-@pytest.fixture
-def mock_resource_service():
-    mock = AsyncMock(spec=ResourceService)
-    return mock
-
-
-@pytest.fixture
-def presentation_service(mock_template_service, mock_resource_service):
-    return PresentationService(mock_template_service, mock_resource_service)
 
 
 @pytest.mark.asyncio
