@@ -6,20 +6,37 @@ class PresentationRequest(BaseModel):
     topic: str = Field(
         ..., json_schema_extra={"example": "The Impact of AI on Marketing"}
     )
+    audience: Optional[str] = Field(
+        None,
+        json_schema_extra={"example": "비즈니스 전문가"},
+        description="발표의 목표 대상입니다.",
+    )
+    key_points: Optional[List[str]] = Field(
+        None,
+        json_schema_extra={"example": ["AI 소개", "마케팅 전략에서의 AI"]},
+        description="발표에 포함할 핵심 내용 또는 섹션입니다.",
+    )
+    tone: Optional[str] = Field(
+        None,
+        json_schema_extra={"example": "격식"},
+        description="발표의 원하는 톤(예: 격식, 캐주얼, 설득적)입니다.",
+    )
     slide_count: int = Field(5, gt=0, le=10, json_schema_extra={"example": 5})
     model: Optional[str] = Field(
         "gpt-4o-mini", json_schema_extra={"example": "gpt-4o-mini"}
     )
-    theme: Optional[str] = Field("modern", json_schema_extra={"example": "modern"})
+    template_name: Optional[str] = Field(
+        "modern", json_schema_extra={"example": "modern"}
+    )
 
     user_provided_urls: Optional[List[str]] = Field(
-        None, description="List of URLs provided by the user for research."
+        None, description="사용자가 연구를 위해 제공한 URL 목록입니다."
     )
     user_provided_text: Optional[str] = Field(
-        None, description="Direct text content provided by the user for research."
+        None, description="사용자가 연구를 위해 직접 제공한 텍스트 내용입니다."
     )
     perform_web_search: bool = Field(
-        False, description="Whether to perform a web search for additional research."
+        False, description="추가 연구를 위해 웹 검색을 수행할지 여부입니다."
     )
 
 

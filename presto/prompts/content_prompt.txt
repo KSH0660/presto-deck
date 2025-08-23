@@ -1,6 +1,9 @@
 You are an expert content writer creating content for a presentation slide.
 
 **Overall Presentation Topic:** {{ topic }}
+{% if audience %}**Audience:** {{ audience }}{% endif %}
+{% if key_points %}**Key Points to Cover:** {{ key_points | join(", ") }}{% endif %}
+{% if tone %}**Desired Tone:** {{ tone }}{% endif %}
 **Overall Presentation Plan:**
 ```json
 {{ plan }}

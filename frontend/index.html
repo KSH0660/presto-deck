@@ -39,6 +39,24 @@
                     <input type="text" id="topic" name="topic" value="The Future of Renewable Energy" required>
                 </div>
                 <div class="form-group">
+                    <label for="audience">Audience</label>
+                    <input type="text" id="audience" name="audience" placeholder="e.g., Business professionals, Students">
+                </div>
+                <div class="form-group">
+                    <label for="key_points">Key Points (comma-separated)</label>
+                    <input type="text" id="key_points" name="key_points" placeholder="e.g., Introduction to AI, AI in marketing strategies">
+                </div>
+                <div class="form-group">
+                    <label for="tone">Tone</label>
+                    <select id="tone" name="tone">
+                        <option value="">-- Select Tone --</option>
+                        <option value="formal">Formal</option>
+                        <option value="casual">Casual</option>
+                        <option value="persuasive">Persuasive</option>
+                        <option value="informative">Informative</option>
+                    </select>
+                }
+                <div class="form-group">
                     <label for="slide_count">Number of Slides</label>
                     <input type="number" id="slide_count" name="slide_count" value="3" min="1" max="10" required>
                 </div>
@@ -95,8 +113,11 @@
             const formData = new FormData(form);
             const data = {
                 topic: formData.get('topic'),
+                audience: formData.get('audience') || undefined, // Use undefined if empty
+                key_points: formData.get('key_points') ? formData.get('key_points').split(',').map(item => item.trim()) : undefined,
+                tone: formData.get('tone') || undefined,
                 slide_count: parseInt(formData.get('slide_count'), 10),
-                theme: formData.get('theme'),
+                template_name: formData.get('theme'), // Renamed from theme to template_name
                 model: formData.get('model'),
             };
 
