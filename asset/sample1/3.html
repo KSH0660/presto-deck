@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>템플릿 3: 데이터 시각화</title>
+<style>
+    body {
+        font-family: 'Malgun Gothic', sans-serif;
+        background-color: #d8d8d8;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+    .slide-container {
+        width: 800px;
+        height: 450px;
+        background-color: #788d85;
+        padding: 30px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .title-bar {
+        background-color: transparent;
+        color: #fff;
+        padding: 10px 20px;
+        font-size: 28px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        border: 3px solid #fff;
+    }
+    .title-number {
+        background-color: #fff;
+        color: #788d85;
+        padding: 5px 15px;
+        margin-right: 20px;
+        font-size: 32px;
+        font-weight: bold;
+    }
+    .content-area {
+        flex-grow: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+    .pie-chart {
+        width: 250px;
+        height: 250px;
+        border-radius: 50%;
+        background-image: conic-gradient(
+            #4a4a4a 0% 45%,
+            #e8c3c3 45% 65%,
+            #f3d9d9 65% 85%,
+            #e0e0e0 85% 100%
+        );
+        border: 5px solid white;
+    }
+</style>
+</head>
+<body>
+
+<div class="slide-container">
+    <div class="title-bar">
+        <span class="title-number">3</span> 예산 (1인당)
+    </div>
+    <div class="content-area">
+        <div class="pie-chart"></div>
+    </div>
+</div>
+
+</body>
+</html>
