@@ -6,6 +6,8 @@ from fastapi.responses import StreamingResponse
 from presto.app.models.presentation import PresentationRequest
 from presto.app.services.template import TemplateService
 from presto.app.services.presentation import PresentationService
+from presto.app.services.resource import ResourceService # New import
+
 
 router = APIRouter()
 
@@ -20,14 +22,15 @@ async def presentation_generator(request: PresentationRequest, presentation_serv
         error_event = {"type": "error", "data": {"message": f"An unexpected error occurred: {str(e)}"}}
         yield f"data: {json.dumps(error_event)}"
 
-@router.post("/generate")
+@router.post("/generate", response_class=StreamingResponse, tags=["presentation"])
 async def generate_presentation_stream(
     request: PresentationRequest,
     template_service: TemplateService = Depends(TemplateService),
+    resource_service: ResourceService = Depends(ResourceService), # New dependency
 ):
     """
     Creates a new presentation by streaming the results slide by slide.
     Uses Server-Sent Events (SSE).
     """
-    presentation_service = PresentationService(template_service)
+    presentation_service = PresentationService(template_service, resource_service) # Pass resource_service
     return StreamingResponse(presentation_generator(request, presentation_service), media_type="text/event-stream")

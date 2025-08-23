@@ -8,8 +8,11 @@ Do not generate detailed content, only the titles and layout choices.
 **Available Layouts:**
 - `{{ layouts | join(", ") }}`
 
+**Research Context:**
+{{ enriched_context }}
+
 **Instructions:**
-1. Create a narrative arc (Introduction, Body, Conclusion).
+1. Create a narrative arc (Introduction, Body, Conclusion) based on the provided topic and research context.
 2. For each slide, provide a short, impactful `title`.
 3. For each slide, choose the most appropriate `layout` from the available list.
 4. Your response MUST be a single, valid JSON object with a "slides" key. Example:
