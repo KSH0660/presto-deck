@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparison Slide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-800 text-white flex flex-col justify-center min-h-screen p-8">
+    <h1 class="text-5xl font-bold mb-8 text-center">{{ title }}</h1>
+    <div class="flex flex-grow gap-8 max-h-[calc(100vh-150px)]">
+        <div class="flex-1 bg-gray-700 p-6 rounded-lg flex flex-col overflow-y-auto">
+            <h2 class="text-4xl font-semibold mb-4 text-blue-400">{{ column1_title }}</h2>
+            <div class="text-xl leading-relaxed flex-grow">
+                {{ column1_content | safe }}
+            </div>
+        </div>
+        <div class="flex-1 bg-gray-700 p-6 rounded-lg flex flex-col overflow-y-auto">
+            <h2 class="text-4xl font-semibold mb-4 text-green-400">{{ column2_title }}</h2>
+            <div class="text-xl leading-relaxed flex-grow">
+                {{ column2_content | safe }}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
