@@ -9,3 +9,5 @@ Jinja2
 pydantic-settings
 pre-commit
 pydantic
+xhtml2pdf
+streamlit
