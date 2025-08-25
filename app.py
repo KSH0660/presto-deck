@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 
 import streamlit as st
+from xhtml2pdf import pisa
 
 # --- src 모듈 임포트 세팅 ---
 # 프로젝트 루트/app.py 기준으로 src 경로 추가
@@ -58,6 +59,8 @@ if "deck_plan" not in st.session_state:
     st.session_state.deck_plan: DeckPlan | None = None
 if "slides" not in st.session_state:
     st.session_state.slides: List[SlideHTML] = []
+if "pdf_bytes" not in st.session_state:
+    st.session_state.pdf_bytes = None
 
 # 실행
 if run_btn:
@@ -91,14 +94,18 @@ if deck_plan and slides:
 
         # 표 형태(간단)로 슬라이드 목록
         rows = []
+        print(deck_plan.slides)
         for s in deck_plan.slides:
+            print(f"{s.numbers=}")
             rows.append(
                 {
                     "slide_id": s.slide_id,
                     "title": s.title,
                     "key_points": " | ".join(s.key_points[:5]),
-                    "numbers": ", ".join(
-                        [f"{k}:{v}" for k, v in list(s.numbers.items())[:5]]
+                    "numbers": (
+                        ", ".join([f"{k}:{v}" for k, v in list(s.numbers.items())[:5]])
+                        if s.numbers
+                        else ""
                     ),
                     "section": s.section or "",
                 }
@@ -112,7 +119,7 @@ if deck_plan and slides:
         # 간단한 공통 스타일(옵션)
         base_css = """
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; margin: 0; padding: 12px; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; margin: 0; padding: 0; }
           .slide { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 18px; }
           .slide h2 { margin-top: 0; }
           .two-col .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -125,7 +132,7 @@ if deck_plan and slides:
                 f"**Slide {s.slide_id} — Template: `{s.template_name}` — {deck_plan.slides[s.slide_id-1].title if s.slide_id-1 < len(deck_plan.slides) else ''}**"
             )
             html_doc = f"<!doctype html><html><head><meta charset='utf-8'>{base_css}</head><body>{s.html}</body></html>"
-            st.components.v1.html(html_doc, height=420, scrolling=True)
+            st.components.v1.html(html_doc, height=450, scrolling=False)
 
     # --- Tab 3: Export ---
     with tabs[2]:
@@ -149,7 +156,7 @@ if deck_plan and slides:
             # Deck plan JSON
             zf.writestr(
                 "deck_plan.json",
-                deck_plan.model_dump_json(indent=2, ensure_ascii=False),
+                deck_plan.model_dump_json(indent=2),
             )
             # Slides HTML
             for s in slides:
@@ -164,6 +171,72 @@ if deck_plan and slides:
             mime="application/zip",
             use_container_width=True,
         )
+
+        st.divider()
+        st.subheader("PDF로 내보내기 (xhtml2pdf 사용)")
+        if st.button("⚙️ PDF 생성", use_container_width=True):
+            with st.spinner("PDF 변환 중..."):
+                # 1. 모든 슬라이드 HTML을 하나로 합치기
+                combined_html = "".join(
+                    f"<section>{s.html}</section>"
+                    for s in sorted(slides, key=lambda x: x.slide_id)
+                )
+
+                # 2. 전체 HTML 문서 구성 (PDF 페이지 크기 및 스타일 지정)
+                full_html = """
+                <!doctype html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Presentation</title>
+                    <style>
+                        @page {
+                            size: 1280px 720px; /* 16:9 aspect ratio */
+                            margin: 0;
+                        }
+                        body {
+                            margin: 0;
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+                        }
+                        section {
+                            width: 1280px;
+                            height: 720px;
+                            box-sizing: border-box;
+                            padding: 40px;
+                            page-break-after: always;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: center;
+                            align-items: center;
+                            text-align: center;
+                        }
+                        section:last-child {
+                            page-break-after: auto;
+                        }
+                    </style>
+                </head>
+                <body>{combined_html}</body>
+                </html>
+                """
+
+                # 3. PDF 생성
+                pdf_bytes = io.BytesIO()
+                pisa_status = pisa.CreatePDF(io.StringIO(full_html), dest=pdf_bytes)
+
+                if not pisa_status.err:
+                    st.session_state.pdf_bytes = pdf_bytes.getvalue()
+                    st.success("PDF 생성 완료! 아래 버튼으로 다운로드하세요.")
+                else:
+                    st.error("PDF 생성 실패: {pisa_status.err}")
+
+        if "pdf_bytes" in st.session_state and st.session_state.pdf_bytes:
+            st.download_button(
+                label="⬇️ 생성된 PDF 다운로드",
+                data=st.session_state.pdf_bytes,
+                file_name="presentation.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+            )
 
 # 템플릿 미리보기(사이드 유틸)
 st.divider()
