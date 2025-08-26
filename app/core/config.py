@@ -9,16 +9,16 @@ class Settings(BaseSettings):
 
     # --- Operational Settings ---
     # DRAFT Tier
-    DRAFT_MODEL: str = "gpt-4o-mini"
-    DRAFT_MAX_CONCURRENCY: int = 12
+    DRAFT_MODEL: str = "gpt-5-nano"
+    DRAFT_MAX_CONCURRENCY: int = 36
 
     # DEFAULT Tier
-    DEFAULT_MODEL: str = "gpt-4o-mini"
-    DEFAULT_MAX_CONCURRENCY: int = 10
+    DEFAULT_MODEL: str = "gpt-5-mini"
+    DEFAULT_MAX_CONCURRENCY: int = 24
 
     # PREMIUM Tier
-    PREMIUM_MODEL: str = "gpt-4o"
-    PREMIUM_MAX_CONCURRENCY: int = 5
+    PREMIUM_MODEL: str = "gpt-5"
+    PREMIUM_MAX_CONCURRENCY: int = 12
 
     class Config:
         env_file = ".env"
