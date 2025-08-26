@@ -5,7 +5,14 @@ from fastapi import APIRouter, HTTPException
 from app.core import planner, layout_selector, slide_worker
 from app.core.concurrency import run_concurrently
 from app.core.config import settings
-from app.models.schema import SlideHTML, GenerateRequest
+from app.models.schema import (
+    SlideHTML,
+    GenerateRequest,
+    PlanRequest,
+    LayoutSelectRequest,
+    RenderSlidesRequest,
+    PreviewSlideRequest,
+)
 from app.models.types import QualityTier
 
 router = APIRouter()
@@ -72,3 +79,120 @@ async def generate_presentation(req: GenerateRequest):
         raise HTTPException(
             status_code=500, detail=f"An unexpected error occurred: {e}"
         )
+
+
+@router.post("/plan")
+async def plan_only(req: PlanRequest):
+    """Return only the planned deck structure without rendering slides."""
+    try:
+        if req.quality == QualityTier.PREMIUM:
+            model = settings.PREMIUM_MODEL
+        elif req.quality == QualityTier.DRAFT:
+            model = settings.DRAFT_MODEL
+        else:
+            model = settings.DEFAULT_MODEL
+
+        deck_plan = await planner.plan_deck(req.user_request, model)
+        return deck_plan.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/layouts/select")
+async def select_layouts_endpoint(req: LayoutSelectRequest):
+    """Select candidate templates for slides given a deck plan."""
+    try:
+        if req.quality == QualityTier.PREMIUM:
+            model = settings.PREMIUM_MODEL
+        elif req.quality == QualityTier.DRAFT:
+            model = settings.DRAFT_MODEL
+        else:
+            model = settings.DEFAULT_MODEL
+
+        selection = await layout_selector.select_layouts(req.deck_plan, model)
+        return selection.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/slides/render")
+async def render_slides(req: RenderSlidesRequest):
+    """Render one or more slides for a given deck plan."""
+    try:
+        if req.quality == QualityTier.PREMIUM:
+            model = settings.PREMIUM_MODEL
+            max_concurrency = settings.PREMIUM_MAX_CONCURRENCY
+        elif req.quality == QualityTier.DRAFT:
+            model = settings.DRAFT_MODEL
+            max_concurrency = settings.DRAFT_MAX_CONCURRENCY
+        else:
+            model = settings.DEFAULT_MODEL
+            max_concurrency = settings.DEFAULT_MAX_CONCURRENCY
+
+        slides = req.slides or req.deck_plan.slides
+        candidate_map = req.candidate_map or {}
+
+        template_catalog = layout_selector.load_template_catalog()
+        tasks = []
+        for slide_spec in slides:
+            candidates = candidate_map.get(slide_spec.slide_id, [])
+            tasks.append(
+                slide_worker.process_slide(
+                    slide_spec=slide_spec,
+                    deck_plan=req.deck_plan,
+                    candidate_template_names=candidates,
+                    template_catalog=template_catalog,
+                    model=model,
+                )
+            )
+
+        rendered_slides = await run_concurrently(tasks, max_concurrency=max_concurrency)
+        return {"slides": [s.model_dump() for s in rendered_slides]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/preview")
+async def preview_slide(req: PreviewSlideRequest):
+    """Render a single slide preview. If candidate templates are not provided, pick automatically."""
+    try:
+        if req.quality == QualityTier.PREMIUM:
+            model = settings.PREMIUM_MODEL
+        elif req.quality == QualityTier.DRAFT:
+            model = settings.DRAFT_MODEL
+        else:
+            model = settings.DEFAULT_MODEL
+
+        # Determine slide spec
+        slide_spec = req.slide
+        if slide_spec is None and req.slide_id is not None:
+            slide_spec = next(
+                (s for s in req.deck_plan.slides if s.slide_id == req.slide_id), None
+            )
+        if slide_spec is None:
+            raise HTTPException(status_code=400, detail="Provide slide or slide_id")
+
+        # Determine candidates
+        candidate_templates = req.candidate_templates
+        if not candidate_templates:
+            selection = await layout_selector.select_layouts(req.deck_plan, model)
+            slide_sel = next(
+                (i for i in selection.items if i.slide_id == slide_spec.slide_id), None
+            )
+            candidate_templates = [
+                c.template_name for c in (slide_sel.candidates if slide_sel else [])
+            ][:3]
+
+        template_catalog = layout_selector.load_template_catalog()
+        result: SlideHTML = await slide_worker.process_slide(
+            slide_spec=slide_spec,
+            deck_plan=req.deck_plan,
+            candidate_template_names=candidate_templates or [],
+            template_catalog=template_catalog,
+            model=model,
+        )
+        return result.model_dump()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

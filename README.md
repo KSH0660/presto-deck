@@ -78,35 +78,74 @@ The API will now be running at `http://127.0.0.1:8000`. You can access the inter
 
 ## API Usage
 
-The core functionality is exposed through a single API endpoint.
+The API provides a simple end‑to‑end endpoint and modular endpoints for advanced flows like previews and partial retries.
 
-### Generate a Presentation
+### Orchestrator
+- Endpoint: `POST /api/v1/generate`
+- Description: Plan → select layouts → render all slides in one call.
+- Body:
+  ```json
+  {
+    "user_request": "Pitch deck for ...",
+    "quality": "default" // one of: draft, default, premium
+  }
+  ```
+- Success (200):
+  ```json
+  {
+    "topic": "...",
+    "audience": "...",
+    "slides": [
+      { "slide_id": 1, "template_name": "title.html", "html": "<h1>..." },
+      { "slide_id": 2, "template_name": "content.html", "html": "<p>..." }
+    ]
+  }
+  ```
 
-  * **Endpoint:** `POST /api/v1/generate`
+### Modular Endpoints
+- `POST /api/v1/plan`
+  - Body:
+    ```json
+    { "user_request": "...", "quality": "default" }
+    ```
+  - Returns: `DeckPlan` only (no rendering)
 
-  * **Description:** Creates a new presentation based on a user-provided topic.
+- `POST /api/v1/layouts/select`
+  - Body:
+    ```json
+    { "deck_plan": { /* DeckPlan */ }, "quality": "default" }
+    ```
+  - Returns: `LayoutSelection` with candidate templates per slide
 
-  * **Body:**
-
+- `POST /api/v1/slides/render`
+  - Body:
     ```json
     {
-      "topic": "The Impact of AI on Marketing",
-      "slide_count": 5
+      "deck_plan": { /* DeckPlan */ },
+      "slides": [ /* optional: subset of SlideSpec */ ],
+      "candidate_map": { "1": ["title.html"], "2": ["content.html"] },
+      "quality": "default"
     }
     ```
+  - Returns: `{ "slides": [ SlideHTML, ... ] }`
 
-  * **Success Response (200 OK):**
-
+- `POST /api/v1/preview`
+  - Body (either `slide` or `slide_id` is required):
     ```json
     {
-      "title": "The Impact of AI on Marketing",
-      "slides_html": [
-        "<html></html>",
-        "<html></html>",
-        "<html></html>"
-      ]
+      "deck_plan": { /* DeckPlan */ },
+      "slide_id": 1,
+      "candidate_templates": ["title.html"], // optional; auto-picks if omitted
+      "quality": "default"
     }
     ```
+  - Returns: one `SlideHTML`
+
+### Utility Endpoints
+- `GET /healthz`: Liveness check
+- `GET /readyz`: Readiness check with template count and API key presence
+- `GET /api/v1/meta`: Service metadata and quality tier config
+- `GET /api/v1/templates`: Available template filenames
 
 -----
 

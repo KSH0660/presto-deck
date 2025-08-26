@@ -49,3 +49,43 @@ class SlideHTML(BaseModel):
     slide_id: int
     template_name: str
     html: str
+
+
+# --- API Requests for modular endpoints ---
+
+
+class PlanRequest(BaseModel):
+    """Request to plan a deck without rendering slides."""
+
+    user_request: str
+    quality: QualityTier = QualityTier.DEFAULT
+
+
+class LayoutSelectRequest(BaseModel):
+    """Select candidate templates for each slide based on a deck plan."""
+
+    deck_plan: DeckPlan
+    quality: QualityTier = QualityTier.DEFAULT
+
+
+class RenderSlidesRequest(BaseModel):
+    """Render a subset or all slides for a given deck plan."""
+
+    deck_plan: DeckPlan
+    # If omitted, render all slides in deck_plan.slides
+    slides: Optional[List[SlideSpec]] = None
+    # Mapping of slide_id to candidate template names
+    candidate_map: Optional[Dict[int, List[str]]] = None
+    quality: QualityTier = QualityTier.DEFAULT
+
+
+class PreviewSlideRequest(BaseModel):
+    """Render a single slide preview."""
+
+    deck_plan: DeckPlan
+    # Provide either a full slide spec or just a slide_id within deck_plan
+    slide: Optional[SlideSpec] = None
+    slide_id: Optional[int] = None
+    # Optional explicit candidate templates; if omitted, selector will pick
+    candidate_templates: Optional[List[str]] = None
+    quality: QualityTier = QualityTier.DEFAULT
