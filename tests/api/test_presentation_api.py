@@ -91,6 +91,6 @@ async def test_generate_presentation_success(
                 assert response_data["slides"][1]["html"] == "<p>Slide 2</p>"
 
                 # Assert that our mocks were called correctly
-                mock_plan.assert_called_once_with("Test presentation", "gpt-4o-mini")
-                mock_select.assert_called_once_with(mock_deck_plan, "gpt-4o-mini")
+                mock_plan.assert_called_once_with("Test presentation", "gpt-5-mini")
+                mock_select.assert_called_once_with(mock_deck_plan, "gpt-5-mini")
                 assert mock_process.call_count == 2
