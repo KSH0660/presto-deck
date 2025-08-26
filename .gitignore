@@ -72,3 +72,6 @@ cython_debug/
 
 # Environment
 .env
+
+# LangChain Cache DB
+.langchain.db
