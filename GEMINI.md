@@ -12,3 +12,25 @@
 - **Configuration:** Use a `.env` file for environment variables like API keys. Load them using a settings module in `app/core/config.py`.
 - **Project Structure:** Adhere strictly to the following file structure. When you create or modify a file, always specify its full path (e.g., `app/services/generator.py`).
 - **Comment:** Write simple docstring in Korean.
+
+## Project Structure
+presto/
+├─ app/
+│  ├─ main.py                  # FastAPI 엔트리
+│  ├─ api/
+│  │  └─ v1/
+│  │     └─ presentation.py    # /generate 등 라우터
+│  ├─ core/
+│  │  ├─ llm.py                # ainvoke/invoke 어댑터
+│  │  ├─ planner.py            # 1차 Deck Plan LLM
+│  │  ├─ slide_worker.py       # 각 슬라이드 작업자(비동기)
+│  │  ├─ layout_selector.py    # 템플릿 후보/스코어링
+│  │  ├─ content_writer.py     # 슬라이드 컨텐츠 LLM
+│  │  ├─ renderer.py           # Jinja2 렌더(HTML)
+│  │  ├─ conversions.py        # html->pdf/pptx (선택, 후행잡)
+│  │  └─ concurrency.py        # 세마포어/Executor/리트라이 유틸
+│  ├─ models/
+│  │  ├─ schema.py             # Pydantic 모델들
+│  │  └─ types.py
+│  └─ templates/
+│     ├─ ...

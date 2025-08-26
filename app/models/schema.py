@@ -1,5 +1,16 @@
 from typing import Dict, List, Optional
 from pydantic import BaseModel
+from app.models.types import QualityTier
+
+# --- API Models ---
+
+
+class GenerateRequest(BaseModel):
+    user_request: str
+    quality: QualityTier = QualityTier.DEFAULT
+
+
+# --- Data Models ---
 
 
 # 1) 단계 A 결과: 덱 기획

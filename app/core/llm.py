@@ -14,4 +14,5 @@ def make_llm(model: str = "gpt-4o-mini", temperature: float = 0.2) -> ChatOpenAI
         model=model,
         api_key=api_key,
         temperature=temperature,
+        timeout=60,
     )
