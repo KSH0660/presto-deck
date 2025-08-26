@@ -10,6 +10,15 @@
 - **Data Validation:** Pydantic is mandatory for all API request/response models.
 - **Dependencies:** Manage dependencies through a `requirements.txt` file.
 - **Configuration:** Use a `.env` file for environment variables like API keys. Load them using a settings module in `app/core/config.py`.
+
+- **Frontend:** React (TypeScript) with Vite, utilizing Material Design principles and a component library (e.g., Material UI).
+- **Overall Stack Recommendation (from scratch):**
+    - **Backend:** Python + FastAPI
+    - **Frontend:** React + TypeScript
+    - **Build Tool:** Vite
+    - **UI/UX & Styling:** Material Design Principles + Component Library (e.g., Material UI)
+    - **State Management (Frontend):** React Context API / Zustand or Jotai
+    - **Database & ORM:** PostgreSQL + SQLAlchemy (with Alembic)
 - **Project Structure:** Adhere strictly to the following file structure. When you create or modify a file, always specify its full path (e.g., `app/services/generator.py`).
 - **Comment:** Write simple docstring in Korean.
 
