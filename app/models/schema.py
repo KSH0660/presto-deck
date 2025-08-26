@@ -6,8 +6,13 @@ from app.models.types import QualityTier
 
 
 class GenerateRequest(BaseModel):
+    """프레젠테이션 생성을 위한 기본 요청 모델"""
+
     user_request: str
     quality: QualityTier = QualityTier.DEFAULT
+    # 스트리밍 전용 옵션 (일반 generate에는 영향 없음)
+    ordered: bool = False  # 완료순이 아닌 슬라이드 인덱스 순으로 전송할지 여부
+    concurrency: int | None = None  # 동시 작업 수(미지정 시 tier 기본값 사용)
 
 
 # --- Data Models ---

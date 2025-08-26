@@ -1,5 +1,8 @@
 from typing import Dict, List
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
+import asyncio
+import json
 
 # Refactored imports
 from app.core import planner, layout_selector, slide_worker
@@ -194,5 +197,179 @@ async def preview_slide(req: PreviewSlideRequest):
         return result.model_dump()
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/generate-stream")
+async def generate_stream(req: GenerateRequest):
+    """
+    렌더가 완료되는 슬라이드부터 순차적으로 SSE로 스트리밍 전송합니다.
+
+    이벤트 타입:
+    - started: {request_id?, total_slides}
+    - deck_plan: {..DeckPlan}
+    - slide_rendered: {index, slide_id, title, html, template_name}
+    - progress: {completed, total}
+    - completed: {total, duration_ms}
+    - error: {message}
+    """
+
+    try:
+        # 1) 운영 파라미터 확정
+        if req.quality == QualityTier.PREMIUM:
+            model = settings.PREMIUM_MODEL
+            default_cc = settings.PREMIUM_MAX_CONCURRENCY
+        elif req.quality == QualityTier.DRAFT:
+            model = settings.DRAFT_MODEL
+            default_cc = settings.DRAFT_MAX_CONCURRENCY
+        else:
+            model = settings.DEFAULT_MODEL
+            default_cc = settings.DEFAULT_MAX_CONCURRENCY
+
+        max_concurrency = max(1, req.concurrency or default_cc)
+        ordered = bool(req.ordered)
+
+        # 2) 덱 플랜 수립 및 후보 선택
+        deck_plan = await planner.plan_deck(req.user_request, model)
+        selection = await layout_selector.select_layouts(deck_plan, model)
+
+        slide_to_candidates: Dict[int, List[str]] = {}
+        for item in selection.items:
+            slide_to_candidates[item.slide_id] = [
+                c.template_name for c in item.candidates
+            ][:3]
+
+        template_catalog = layout_selector.load_template_catalog()
+
+        # 3) SSE 제너레이터 정의
+        async def sse_event(event: str, data: dict):
+            payload = (
+                f"event: {event}\n"
+                + "data: "
+                + json.dumps(data, ensure_ascii=False)
+                + "\n\n"
+            )
+            return payload.encode("utf-8")
+
+        async def event_generator():
+            start = asyncio.get_event_loop().time()
+
+            total = len(deck_plan.slides)
+            completed = 0
+
+            # 초기 이벤트
+            yield await sse_event(
+                "started", {"total_slides": total, "model": model, "ordered": ordered}
+            )
+            # 플랜 통지
+            yield await sse_event("deck_plan", deck_plan.model_dump())
+
+            # 동시성 제어 + 작업 생성
+            semaphore = asyncio.Semaphore(max_concurrency)
+            queue: asyncio.Queue = asyncio.Queue()
+
+            async def run_one(idx: int, slide_spec):
+                async with semaphore:
+                    try:
+                        candidates = slide_to_candidates.get(slide_spec.slide_id, [])
+                        result: SlideHTML = await slide_worker.process_slide(
+                            slide_spec=slide_spec,
+                            deck_plan=deck_plan,
+                            candidate_template_names=candidates,
+                            template_catalog=template_catalog,
+                            model=model,
+                        )
+                        await queue.put((idx, slide_spec, result))
+                    except Exception as e:
+                        await queue.put((idx, slide_spec, e))
+
+            tasks = [
+                asyncio.create_task(run_one(idx, slide_spec))
+                for idx, slide_spec in enumerate(deck_plan.slides)
+            ]
+
+            # 순서 제어를 위한 버퍼
+            next_index = 0
+            buffer: Dict[int, tuple] = {}
+
+            try:
+                while completed < total:
+                    idx, spec, payload = await queue.get()
+
+                    # 오류 처리
+                    if isinstance(payload, Exception):
+                        yield await sse_event(
+                            "error",
+                            {
+                                "index": idx,
+                                "slide_id": getattr(spec, "slide_id", None),
+                                "message": str(payload),
+                            },
+                        )
+                        completed += 1
+                        yield await sse_event(
+                            "progress", {"completed": completed, "total": total}
+                        )
+                        continue
+
+                    # 버퍼링 또는 즉시 전송
+                    if ordered:
+                        buffer[idx] = (spec, payload)
+                        while next_index in buffer:
+                            s, res = buffer.pop(next_index)
+                            completed += 1
+                            yield await sse_event(
+                                "slide_rendered",
+                                {
+                                    "index": next_index,
+                                    "slide_id": res.slide_id,
+                                    "title": s.title,
+                                    "template_name": res.template_name,
+                                    "html": res.html,
+                                },
+                            )
+                            yield await sse_event(
+                                "progress", {"completed": completed, "total": total}
+                            )
+                            next_index += 1
+                    else:
+                        completed += 1
+                        yield await sse_event(
+                            "slide_rendered",
+                            {
+                                "index": idx,
+                                "slide_id": payload.slide_id,
+                                "title": spec.title,
+                                "template_name": payload.template_name,
+                                "html": payload.html,
+                            },
+                        )
+                        yield await sse_event(
+                            "progress", {"completed": completed, "total": total}
+                        )
+
+                # 모든 작업 종료 대기
+                await asyncio.gather(*tasks, return_exceptions=True)
+                duration = int((asyncio.get_event_loop().time() - start) * 1000)
+                yield await sse_event(
+                    "completed", {"total": total, "duration_ms": duration}
+                )
+            except asyncio.CancelledError:
+                # 클라이언트 연결 종료
+                for t in tasks:
+                    t.cancel()
+                raise
+
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache, no-transform",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

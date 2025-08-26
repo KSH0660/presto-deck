@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 const InputForm = ({ onSubmit, isLoading }) => {
   const [topic, setTopic] = useState('');
   const [quality, setQuality] = useState('default');
+  const [ordered, setOrdered] = useState(false); // false: fastest-first, true: deck-order
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -10,7 +11,7 @@ const InputForm = ({ onSubmit, isLoading }) => {
       alert('Please enter a topic.');
       return;
     }
-    onSubmit(topic, quality);
+    onSubmit(topic, quality, ordered);
   };
 
   return (
@@ -29,6 +30,28 @@ const InputForm = ({ onSubmit, isLoading }) => {
             onChange={(e) => setTopic(e.target.value)}
             disabled={isLoading}
           />
+        </div>
+
+        <div className="mb-6">
+          <label className="block mb-2 text-sm font-medium text-gray-300">Streaming Order</label>
+          <div className="flex justify-center space-x-2 p-1 bg-gray-700 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setOrdered(false)}
+              className={`w-full px-4 py-2 text-sm font-medium rounded-md transition-colors ${!ordered ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+              disabled={isLoading}
+            >
+              Fastest-first
+            </button>
+            <button
+              type="button"
+              onClick={() => setOrdered(true)}
+              className={`w-full px-4 py-2 text-sm font-medium rounded-md transition-colors ${ordered ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+              disabled={isLoading}
+            >
+              Deck-order
+            </button>
+          </div>
         </div>
 
         <div className="mb-6">

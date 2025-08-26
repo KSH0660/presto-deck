@@ -4,40 +4,45 @@ import axios from 'axios';
 import InputForm from './components/InputForm';
 import Loader from './components/Loader';
 import PresentationViewer from './components/PresentationViewer';
+import StreamingViewer from './components/StreamingViewer';
 
 function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [presentation, setPresentation] = useState(null);
+  const [streamParams, setStreamParams] = useState(null); // { topic, quality, ordered }
 
-  const handleGenerate = async (topic, quality) => {
-    setIsLoading(true);
+  const handleGenerate = async (topic, quality, ordered) => {
+    // Switch to streaming mode: render slides as they are ready
     setError(null);
     setPresentation(null);
-
-    try {
-      const response = await axios.post('/api/v1/generate', {
-        user_request: topic,
-        quality: quality,
-      });
-      setPresentation(response.data);
-    } catch (err) {
-      setError('Failed to generate presentation. Please try again.');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
+    setStreamParams({ topic, quality, ordered });
   };
 
   const handleReset = () => {
     setPresentation(null);
     setError(null);
+    setStreamParams(null);
   };
 
   const renderContent = () => {
-    if (isLoading) {
-      return <Loader />;
+    // While streaming, show the streaming viewer
+    if (streamParams && !presentation) {
+      return (
+        <StreamingViewer
+          topic={streamParams.topic}
+          quality={streamParams.quality}
+          ordered={streamParams.ordered}
+          onCompleted={(finalDeck) => {
+            setPresentation(finalDeck);
+            setStreamParams(null);
+          }}
+          onReset={handleReset}
+        />
+      );
     }
+
+    if (isLoading) return <Loader />;
     if (presentation) {
       return <PresentationViewer presentation={presentation} onReset={handleReset} />;
     }
