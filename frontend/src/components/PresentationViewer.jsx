@@ -1,8 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-const PresentationViewer = ({ presentation, onReset }) => {
+const PresentationViewer = ({ presentation, onReset, onUpdate }) => {
   const [selectedSlideIndex, setSelectedSlideIndex] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const dragFromIndexRef = useRef(null);
+
+  const slides = presentation.slides || [];
+
+  const reorder = (arr, from, to) => {
+    if (from === to || from == null || to == null) return arr;
+    const next = arr.slice();
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    return next;
+  };
+
+  const handleDragStart = (index) => (e) => {
+    dragFromIndexRef.current = index;
+    e.dataTransfer.effectAllowed = 'move';
+    // For Firefox compatibility
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (index) => (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (index) => (e) => {
+    e.preventDefault();
+    const from = dragFromIndexRef.current ?? parseInt(e.dataTransfer.getData('text/plain') || '-1', 10);
+    const to = index;
+    if (from < 0 || to < 0 || from === to) return;
+    const nextSlides = reorder(slides, from, to);
+    const next = { ...presentation, slides: nextSlides };
+    // Maintain selection on the same slide_id if detail view is open later
+    if (selectedSlideIndex !== null) {
+      const selectedId = slides[selectedSlideIndex]?.slide_id;
+      const newIndex = nextSlides.findIndex((s) => s.slide_id === selectedId);
+      setSelectedSlideIndex(newIndex >= 0 ? newIndex : null);
+    }
+    onUpdate && onUpdate(next);
+  };
 
   const handleThumbnailClick = (index) => {
     setIsLoading(true);
@@ -23,8 +62,8 @@ const PresentationViewer = ({ presentation, onReset }) => {
   }, [selectedSlideIndex]);
 
   if (selectedSlideIndex !== null) {
-    const slide = presentation.slides[selectedSlideIndex];
-    const totalSlides = presentation.slides.length;
+    const slide = slides[selectedSlideIndex];
+    const totalSlides = slides.length;
 
     const handlePreviousSlide = () => {
       setIsLoading(true);
@@ -85,7 +124,7 @@ const PresentationViewer = ({ presentation, onReset }) => {
 
         {/* Slide Number Navigation */}
         <div className="w-full max-w-6xl flex flex-wrap justify-center gap-2 p-2 bg-gray-800 rounded-lg overflow-x-auto">
-          {presentation.slides.map((_, index) => (
+          {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => setSelectedSlideIndex(index)}
@@ -104,11 +143,15 @@ const PresentationViewer = ({ presentation, onReset }) => {
     <div className="w-full h-full flex flex-col items-center justify-start p-4 overflow-auto">
       <h2 className="text-2xl font-bold text-white mb-6">Presentation Overview</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full max-w-7xl">
-        {presentation.slides.map((slide, index) => (
+        {slides.map((slide, index) => (
           <div
             key={slide.slide_id}
-            className="aspect-video bg-black rounded-lg shadow-lg cursor-pointer hover:scale-105 transition-transform duration-200 relative"
+            className="aspect-video bg-black rounded-lg shadow-lg cursor-move hover:scale-105 transition-transform duration-200 relative"
             onClick={() => handleThumbnailClick(index)}
+            draggable
+            onDragStart={handleDragStart(index)}
+            onDragOver={handleDragOver(index)}
+            onDrop={handleDrop(index)}
           >
             <iframe
               srcDoc={slide.html}
