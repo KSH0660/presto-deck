@@ -1,5 +1,6 @@
 # app/core/layout_selector.py
 import asyncio
+import logging  # Added
 from typing import List
 
 from langchain.schema.runnable import Runnable
@@ -8,6 +9,8 @@ from app.core.llm import make_llm
 from app.core.prompts import SELECTOR_SYSTEM, SELECTOR_PROMPT
 from app.core.template_manager import get_template_summaries
 from app.models.schema import DeckPlan, SlideSpec, LayoutCandidates
+
+logger = logging.getLogger(__name__)  # Added
 
 
 def build_selector_chain(llm) -> Runnable:
@@ -28,6 +31,9 @@ async def select_layout_for_slide(
     slide_titles = "\n".join(f"- {s.title}" for s in deck_plan.slides)
 
     try:
+        logger.debug(
+            "Selecting layout for slide %d: %s", slide.slide_id, slide.title
+        )  # Added
         selection: LayoutCandidates = await selector_chain.ainvoke(
             {
                 "system": SELECTOR_SYSTEM,
@@ -39,9 +45,19 @@ async def select_layout_for_slide(
                 "template_summaries": template_summaries_prompt,
             }
         )
+        logger.debug(
+            "Layout selected for slide %d: %s",
+            slide.slide_id,
+            selection.layout_candidates,
+        )  # Added
         return selection.layout_candidates
     except Exception as e:
-        print(f"Error during layout selection for slide {slide.slide_id}: {e}")
+        logger.error(
+            "Error during layout selection for slide %d: %s",
+            slide.slide_id,
+            e,
+            exc_info=True,
+        )  # Changed
         # LLM 호출 실패 시 빈 리스트 반환 또는 기본값 사용
         return []
 
@@ -53,6 +69,9 @@ async def run_layout_selection_for_deck(
     덱 플랜의 모든 슬라이드에 대해 병렬적으로 레이아웃 후보를 선택하고,
     결과를 DeckPlan 객체에 업데이트하여 반환합니다.
     """
+    logger.info(
+        "Starting layout selection for %d slides.", len(deck_plan.slides)
+    )  # Added
     llm = make_llm(model=model)
     summaries = get_template_summaries()
     summaries_prompt = "\n".join(
@@ -69,4 +88,5 @@ async def run_layout_selection_for_deck(
     for slide, candidates in zip(deck_plan.slides, results):
         slide.layout_candidates = candidates
 
+    logger.info("Layout selection completed for all slides.")  # Added
     return deck_plan

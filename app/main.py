@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 from contextlib import asynccontextmanager
 
@@ -9,6 +10,9 @@ from app.core.template_manager import (
     initialize_template_data,
     get_template_summaries,
 )
+from app.core.logging import configure_logging
+
+configure_logging()
 
 
 @asynccontextmanager
@@ -31,6 +35,24 @@ app = FastAPI(
     description="AI-powered presentation slide generator.",
     version="1.0.0",
     lifespan=lifespan,
+)
+
+# Add CORS middleware
+origins = [
+    "http://localhost",
+    "http://localhost:8000",  # For local development
+    "http://127.0.0.1:8000",  # For local development
+    "http://localhost:5173",  # Default Vite dev server port
+    "http://127.0.0.1:5173",  # Default Vite dev server port
+    "*",  # Allow all origins for development, be more restrictive in production
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods (GET, POST, PUT, DELETE, OPTIONS, etc.)
+    allow_headers=["*"],  # Allow all headers
 )
 
 app.include_router(presentation.router, prefix="/api/v1")
