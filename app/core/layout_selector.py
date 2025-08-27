@@ -39,7 +39,7 @@ async def select_layout_for_slide(
                 "template_summaries": template_summaries_prompt,
             }
         )
-        return selection.candidates
+        return selection.layout_candidates
     except Exception as e:
         print(f"Error during layout selection for slide {slide.slide_id}: {e}")
         # LLM 호출 실패 시 빈 리스트 반환 또는 기본값 사용

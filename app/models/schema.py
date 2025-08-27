@@ -46,7 +46,9 @@ class DeckPlan(BaseModel):
 class LayoutCandidates(BaseModel):
     """List of candidate template names"""
 
-    candidates: List[str] = Field(description="List of candidate template names.")
+    layout_candidates: List[str] = Field(
+        description="List of candidate template names."
+    )
 
 
 # 3) 단계 B 결과: 최종 HTML
@@ -62,36 +64,3 @@ class TemplateSummary(BaseModel):
     summary: str = Field(
         description="A one-sentence summary of the template's structure and ideal use case."
     )
-
-
-# --- API Requests for modular endpoints ---
-
-
-class PlanRequest(BaseModel):
-    """Request to plan a deck without rendering slides."""
-
-    user_request: str
-    config: GenerationConfig = GenerationConfig()
-
-
-class RenderSlidesRequest(BaseModel):
-    """Render a subset or all slides for a given deck plan."""
-
-    deck_plan: DeckPlan
-    # If omitted, render all slides in deck_plan.slides
-    slides: Optional[List[SlideSpec]] = None
-    # Mapping of slide_id to candidate template names
-    candidate_map: Optional[Dict[int, List[str]]] = None
-    config: GenerationConfig = GenerationConfig()
-
-
-class PreviewSlideRequest(BaseModel):
-    """Render a single slide preview."""
-
-    deck_plan: DeckPlan
-    # Provide either a full slide spec or just a slide_id within deck_plan
-    slide: Optional[SlideSpec] = None
-    slide_id: Optional[int] = None
-    # Optional explicit candidate templates; if omitted, selector will pick
-    candidate_templates: Optional[List[str]] = None
-    config: GenerationConfig = GenerationConfig()
