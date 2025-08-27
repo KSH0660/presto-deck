@@ -16,19 +16,28 @@ PLANNER_PROMPT = PromptTemplate.from_template(
     "- Output must be a JSON object that matches the target schema.\n"
 )
 
-# --- Step A': 후보 템플릿 선택 (DeckPlan + 템플릿 카탈로그 -> 각 슬라이드별 후보 템플릿) ---
+# --- Step B: Select Layout for Individual Slide ---
 SELECTOR_SYSTEM = (
-    "You are a presentation layout selector. "
-    "Given the whole deck plan and the available HTML templates, choose 1~3 best templates per slide, "
-    "with brief reasoning. Focus on structure fit (bullets, two-column, metrics area, etc.)."
+    "You are an expert presentation layout selector. "
+    "Your task is to choose the most suitable layout templates for a single slide within the context of a larger presentation. "
+    "Analyze the slide's content and the overall presentation plan, then select up to 3 best-fitting template names from the provided list. "
+    "Your output must be a JSON object with a 'candidates' field containing a list of the chosen template names."
 )
 SELECTOR_PROMPT = PromptTemplate.from_template(
-    "{system}\n"
-    "Deck Plan (JSON):\n{deck_plan_json}\n\n"
-    "Available Templates:\n{template_catalog}\n\n"
-    "Instructions:\n"
-    "- For each slide_id, suggest 1~3 template_name as candidates.\n"
-    "- Provide very short reasons.\n"
+    "{system}\n\n"
+    "## Overall Presentation Context\n"
+    "- User's Request: {user_request}\n"
+    "- Presentation Topic: {deck_topic}\n"
+    "- Target Audience: {deck_audience}\n"
+    "- All Slide Titles in Order:\n{slide_titles}\n\n"
+    "## Current Slide to Analyze\n"
+    "```json\n{current_slide_json}\n```\n\n"
+    "## Available Templates\n"
+    "{template_summaries}\n\n"
+    "## Your Task\n"
+    "Based on all the information above, select up to 3 template names from the 'Available Templates' that would be the best fit for the 'Current Slide to Analyze'.\n"
+    "Consider the slide's title, key points, and any data it might contain.\n"
+    'Your output **must** be a JSON object with a single key "candidates", which is a list of strings (the template names).'
 )
 
 # --- Step B: 렌더링 (후보 템플릿만 프롬프트에 포함) ---
@@ -50,4 +59,20 @@ RENDER_PROMPT = PromptTemplate.from_template(
     "- Use semantic elements and Tailwind utility classes for spacing/typography/layout.\n"
     "- Replace placeholders like [[TITLE]] and commented sections (e.g., <!-- POINTS -->) with actual content.\n"
     "- If 'numbers' exist, render a neat key-value list or small metric grid.\n"
+)
+
+# --- Step C: Generate Template Summary ---
+TEMPLATE_SUMMARY_SYSTEM = (
+    "You are an expert in analyzing HTML presentation slide templates. "
+    "Your task is to analyze the provided HTML code for a single slide and generate a concise, "
+    "one-sentence summary of its structure and ideal use case."
+)
+TEMPLATE_SUMMARY_PROMPT = PromptTemplate.from_template(
+    "{system}\n\n"
+    "## HTML Content\n"
+    "```html\n{html_content}\n```\n\n"
+    "## Your Task\n"
+    "Analyze the HTML content above. Describe its layout and the best type of content for it in a single, clear sentence. "
+    'For example: "A standard title and content slide with a two-column layout for bullet points." '
+    'or "A full-width cover image with a centered title, ideal for section breaks.'
 )

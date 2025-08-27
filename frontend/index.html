@@ -1,13 +1,47 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Presto - AI Presentation Generator</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presto Deck Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Presto: AI Presentation Generator</h1>
+            <p>Enter a topic and let the AI create a presentation for you in real-time.</p>
+        </header>
+
+        <form id="prompt-form">
+            <textarea id="user-prompt" name="prompt" placeholder="e.g., 'The history of space exploration' or 'An introduction to quantum computing'" required>Create a compelling presentation about the benefits of adopting renewable energy sources for a general audience. Focus on environmental impact, economic advantages, and long-term sustainability. Include key statistics and examples of successful implementations worldwide. The presentation should encourage individuals and communities to consider transitioning to green energy. Aim for a clear, engaging, and persuasive tone.</textarea>
+            <button type="submit" id="generate-btn">Generate Presentation</button>
+        </form>
+
+        <main id="presentation-container">
+            <div id="status-area">
+                <p id="status-text">Waiting for a topic...</p>
+                <div id="progress-bar-container" class="hidden">
+                    <div id="progress-bar"></div>
+                </div>
+            </div>
+            <div id="slides-area"></div>
+        </main>
+
+        <footer>
+            <p>Powered by Presto Co-pilot</p>
+        </footer>
+    </div>
+
+    <div id="slide-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <div id="modal-slide-viewer">
+                <!-- Expanded slide iframe will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
 </html>

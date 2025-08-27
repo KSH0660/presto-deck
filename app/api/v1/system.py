@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.core.config import settings
-from app.core.layout_selector import load_template_catalog
+from app.core.template_manager import get_template_summaries
 
 
 router = APIRouter()
@@ -24,7 +24,7 @@ async def meta():
         },
     }
 
-    catalog = load_template_catalog()
+    catalog = get_template_summaries()
     return {
         "service": "presto-api",
         "version": "1.0.0",
@@ -36,5 +36,5 @@ async def meta():
 @router.get("/templates")
 async def list_templates():
     """List available slide templates by filename."""
-    catalog = load_template_catalog()
+    catalog = get_template_summaries()
     return {"templates": sorted(list(catalog.keys()))}
