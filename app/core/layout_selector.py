@@ -38,7 +38,9 @@ async def select_layout_for_slide(
 
     try:
         logger.debug(
-            "Selecting layout for slide %d: %s", slide_content.slide_id, slide_content.title
+            "Selecting layout for slide %d: %s",
+            slide_content.slide_id,
+            slide_content.title,
         )
         selection: LayoutCandidates = await selector_chain.ainvoke(
             {

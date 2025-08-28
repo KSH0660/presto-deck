@@ -64,7 +64,9 @@ async def stream_presentation(
         # 4. Select layouts for each slide
         logger.info("Selecting layouts for slides...")
         deck_plan = await layout_selector.run_layout_selection_for_deck(
-            initial_deck_plan=initial_deck_plan, user_request=req.user_prompt, model=model
+            initial_deck_plan=initial_deck_plan,
+            user_request=req.user_prompt,
+            model=model,
         )
         logger.info("Layout selection complete.")
         yield await sse_event("deck_plan", deck_plan.model_dump())

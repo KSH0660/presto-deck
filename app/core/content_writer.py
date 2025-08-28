@@ -45,4 +45,3 @@ async def write_slide_content(
         }
     )
     return rendered_slide
-

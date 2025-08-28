@@ -79,7 +79,9 @@ async def test_run_layout_selection_for_deck(mock_initial_deck_plan):
             "template2.html",
         ]
         assert final_deck_plan.slides[1].layout_candidates == ["template3.html"]
-        assert final_deck_plan.slides[0].title == "First Slide" # Ensure content is preserved
+        assert (
+            final_deck_plan.slides[0].title == "First Slide"
+        )  # Ensure content is preserved
 
         # Verify that select_layout_for_slide was called with the correct slide content
         first_call_args = mock_select_for_slide.call_args_list[0]
