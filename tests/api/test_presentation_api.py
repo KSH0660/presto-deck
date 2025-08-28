@@ -9,6 +9,20 @@ from app.models.schema import DeckPlan, SlideSpec, SlideHTML
 pytestmark = pytest.mark.asyncio
 
 
+@pytest.fixture(autouse=True)
+def run_around_tests():
+    # Code that will run before each test
+    from app.api.v1 import presentation
+
+    presentation.slides_db.clear()
+    presentation.next_slide_id = 1
+    # A test function will be run at this point
+    yield
+    # Code that will run after each test
+    presentation.slides_db.clear()
+    presentation.next_slide_id = 1
+
+
 @pytest.fixture
 def mock_deck_plan():
     """Fixture for a sample DeckPlan."""
@@ -20,6 +34,106 @@ def mock_deck_plan():
             SlideSpec(slide_id=2, title="Slide 2", key_points=["Point 2"]),
         ],
     )
+
+
+async def test_get_slides_empty(client):
+    """Test GET /slides when no slides exist."""
+    response = await client.get("/api/v1/slides")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "No slides yet" in response.text
+
+
+async def test_create_and_get_slides(client):
+    """Test creating a slide and then getting the list of slides."""
+    # Create a new slide
+    response = await client.post(
+        "/api/v1/slides/new",
+        data={"title": "My First Slide", "html_content": "<p>Hello</p>"},
+    )
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "My First Slide" in response.text
+    assert "<p>Hello</p>" in response.text
+
+    # Get the list of slides
+    response = await client.get("/api/v1/slides")
+    assert response.status_code == 200
+    assert "My First Slide" in response.text
+    assert "<p>Hello</p>" in response.text
+
+
+async def test_edit_slide(client):
+    """Test editing an existing slide."""
+    # First, create a slide
+    await client.post(
+        "/api/v1/slides/new",
+        data={"title": "Original Title", "html_content": "<p>Original</p>"},
+    )
+
+    # Mock the LLM chain
+    with patch(
+        "langchain_openai.ChatOpenAI.ainvoke", new_callable=AsyncMock
+    ) as mock_ainvoke:
+        mock_ainvoke.return_value = "<p>New AI-generated content</p>"
+
+        # Now, edit the slide
+        response = await client.post(
+            "/api/v1/slides/1/edit",
+            json={"edit_prompt": "Change the content"},
+        )
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "<p>New AI-generated content</p>" in response.text
+
+    # Verify the mock was called
+    mock_ainvoke.assert_called_once()
+
+
+async def test_edit_slide_not_found(client):
+    """Test editing a non-existent slide."""
+    response = await client.post(
+        "/api/v1/slides/999/edit",
+        json={"edit_prompt": "This should fail"},
+    )
+    assert response.status_code == 404
+
+
+async def test_get_progress_stream(client):
+    """Test the /progress SSE endpoint."""
+    response = await client.get("/api/v1/progress")
+    assert response.status_code == 200
+    assert "text/event-stream" in response.headers["content-type"]
+
+    events = []
+    async for line in response.aiter_lines():
+        if line.startswith("data:"):
+            events.append(line.split(":", 1)[1].strip())
+
+    assert events == ["Planning", "Selecting Templates", "Rendering Slides", "Complete"]
+
+
+async def test_export_html(client):
+    """Test exporting slides to a single HTML file."""
+    # Add a couple of slides
+    await client.post(
+        "/api/v1/slides/new",
+        data={"title": "Slide 1", "html_content": "<h1>First</h1>"},
+    )
+    await client.post(
+        "/api/v1/slides/new",
+        data={"title": "Slide 2", "html_content": "<h2>Second</h2>"},
+    )
+
+    response = await client.get("/api/v1/export/html")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    html = response.text
+    assert "<html>" in html
+    assert "<h1>First</h1>" in html
+    assert "<h2>Second</h2>" in html
+    assert "</html>" in html
 
 
 async def test_generate_presentation_streams_events(client, mock_deck_plan):
