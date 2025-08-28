@@ -13,6 +13,7 @@ pytestmark = pytest.mark.asyncio
 def run_around_tests():
     # Code that will run before each test
     from app.api.v1 import presentation
+
     presentation.slides_db.clear()
     presentation.next_slide_id = 1
     # A test function will be run at this point
@@ -71,7 +72,9 @@ async def test_edit_slide(client):
     )
 
     # Mock the LLM chain
-    with patch("langchain_openai.ChatOpenAI.ainvoke", new_callable=AsyncMock) as mock_ainvoke:
+    with patch(
+        "langchain_openai.ChatOpenAI.ainvoke", new_callable=AsyncMock
+    ) as mock_ainvoke:
         mock_ainvoke.return_value = "<p>New AI-generated content</p>"
 
         # Now, edit the slide

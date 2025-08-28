@@ -24,10 +24,10 @@ class GenerateRequest(BaseModel):
 
 class SlideEditRequest(BaseModel):
     """슬라이드 편집을 위한 사용자 요청 모델"""
+
     edit_prompt: str
     client_version: Optional[int] = None
     client_html_hint: Optional[str] = None
-
 
 
 # --- Data Models ---
