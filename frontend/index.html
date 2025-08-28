@@ -5,18 +5,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Presto Deck Generator</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HTMX + SSE extension -->
+    <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1RbcGZgMij0j3JzTy4R0Jbq8kzN1rFj0F7L9PqS19Zt+RrO8G5YzT1Q3B+6xg" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/sse.js"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>Presto: AI Presentation Generator</h1>
-            <p>Enter a topic and let the AI create a presentation for you in real-time.</p>
+<body class="bg-slate-50">
+    <div class="container" x-data="prestoApp()">
+        <header class="text-center pb-5 border-b">
+            <h1 class="text-2xl font-bold text-emerald-600">Presto: AI Presentation Generator</h1>
+            <p class="text-slate-500">Enter a topic and let the AI create a presentation for you in real-time.</p>
         </header>
 
-        <form id="prompt-form">
-            <textarea id="user-prompt" name="prompt" placeholder="e.g., 'The history of space exploration' or 'An introduction to quantum computing'" required>Create a compelling presentation about the benefits of adopting renewable energy sources for a general audience. Focus on environmental impact, economic advantages, and long-term sustainability. Include key statistics and examples of successful implementations worldwide. The presentation should encourage individuals and communities to consider transitioning to green energy. Aim for a clear, engaging, and persuasive tone.</textarea>
-            <button type="submit" id="generate-btn">Generate Presentation</button>
+        <form id="prompt-form" @submit.prevent="generate()" class="flex flex-col gap-3">
+            <textarea id="user-prompt" name="prompt" class="w-full p-3 border rounded" placeholder="e.g., 'The history of space exploration' or 'An introduction to quantum computing'" required>Create a compelling presentation about the benefits of adopting renewable energy sources for a general audience. Focus on environmental impact, economic advantages, and long-term sustainability. Include key statistics and examples of successful implementations worldwide. The presentation should encourage individuals and communities to consider transitioning to green energy. Aim for a clear, engaging, and persuasive tone.</textarea>
+            <button type="submit" id="generate-btn" class="self-end bg-emerald-600 text-white px-4 py-2 rounded">Generate Presentation</button>
         </form>
+
+        <!-- New Controls for updated backend endpoints -->
+        <section id="controls" class="border rounded p-4">
+            <h2 class="text-xl font-semibold mb-3">Utilities</h2>
+            <div class="controls-grid">
+                <div class="card">
+                    <h3 class="font-semibold mb-2">Slides (Server)</h3>
+                    <div class="row mb-2">
+                        <button
+                            id="refresh-slides-btn"
+                            type="button"
+                            class="bg-slate-700 text-white px-3 py-1 rounded"
+                            hx-get="http://127.0.0.1:8000/api/v1/slides"
+                            hx-target="#server-slides"
+                            hx-swap="innerHTML"
+                        >Load Slides</button>
+                        <button id="export-html-btn" type="button" class="bg-slate-500 text-white px-3 py-1 rounded">Export HTML</button>
+                    </div>
+                    <div id="server-slides" class="server-slides" aria-live="polite"></div>
+                </div>
+
+                <div class="card">
+                    <h3 class="font-semibold mb-2">New Slide</h3>
+                    <form id="new-slide-form"
+                          hx-post="http://127.0.0.1:8000/api/v1/slides/new"
+                          hx-target="#server-slides"
+                          hx-swap="innerHTML"
+                          hx-on:htmx:after-request="this.reset()">
+                        <input id="new-slide-title" class="border rounded p-2" type="text" placeholder="Slide title" name="title" required />
+                        <textarea id="new-slide-html" class="border rounded p-2" placeholder="<h1>Hello</h1> ..." name="html_content" required><h2>Custom Slide</h2><p>You can add any HTML here.</p></textarea>
+                        <button type="submit" class="bg-emerald-600 text-white px-3 py-1 rounded">Create Slide</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3 class="font-semibold mb-2">Edit Slide (AI)</h3>
+                    <form id="edit-slide-form" @submit.prevent="submitEdit()">
+                        <input id="edit-slide-id" class="border rounded p-2" type="number" min="1" placeholder="Slide ID" required />
+                        <input id="edit-slide-version" class="border rounded p-2" type="number" min="1" placeholder="Client Version (optional)" />
+                        <textarea id="edit-slide-prompt" class="border rounded p-2" placeholder="e.g., Make the title bolder and add a blue accent." required>Make the content concise and emphasize the key point.</textarea>
+                        <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Apply Edit</button>
+                    </form>
+                    <small class="text-slate-500">Tip: Click a server slide to fill the ID.</small>
+                </div>
+
+                <div class="card">
+                    <h3 class="font-semibold mb-2">System Info</h3>
+                    <div class="row mb-2">
+                        <button id="load-meta-btn" type="button" class="bg-slate-700 text-white px-3 py-1 rounded">Load Meta</button>
+                        <button id="load-templates-btn" type="button" class="bg-slate-700 text-white px-3 py-1 rounded">Load Templates</button>
+                        <button id="progress-demo-btn" type="button" class="bg-slate-700 text-white px-3 py-1 rounded" @click="toggleProgress()">Progress Demo</button>
+                    </div>
+                    <pre id="system-output" class="pre"></pre>
+                    <!-- HTMX SSE: visible on demand -->
+                    <div x-show="showProgress" class="mt-2 p-2 border rounded text-sm bg-white"
+                         hx-ext="sse"
+                         hx-sse="connect:http://127.0.0.1:8000/api/v1/progress; swap: step"
+                         hx-swap="beforeend">
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <main id="presentation-container">
             <div id="status-area">
@@ -28,7 +97,7 @@
             <div id="slides-area"></div>
         </main>
 
-        <footer>
+        <footer class="text-center pt-5 border-t text-slate-500">
             <p>Powered by Presto Co-pilot</p>
         </footer>
     </div>

@@ -37,6 +37,62 @@ body {
     gap: 20px;
 }
 
+/* Controls */
+#controls {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+#controls h2 {
+    margin: 0 0 12px 0;
+}
+
+.controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    background: var(--surface-color);
+}
+
+.card h3 { margin-top: 0; }
+
+.card .row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.card input[type="text"], .card input[type="number"], .card textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-sizing: border-box;
+    margin: 6px 0;
+}
+
+.server-slides {
+    border: 1px dashed var(--border-color);
+    padding: 8px;
+    max-height: 360px;
+    overflow: auto;
+    background: #fafafa;
+}
+
+.server-slides > div { cursor: pointer; }
+
+.pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 6px;
+    padding: 10px;
+    max-height: 260px;
+    overflow: auto;
+}
+
 header {
     text-align: center;
     padding-bottom: 20px;
