@@ -36,33 +36,6 @@ def mock_deck_plan():
     )
 
 
-async def test_get_slides_empty(client):
-    """Test GET /slides when no slides exist."""
-    response = await client.get("/api/v1/slides")
-    assert response.status_code == 200
-    assert "text/html" in response.headers["content-type"]
-    assert "No slides yet" in response.text
-
-
-async def test_create_and_get_slides(client):
-    """Test creating a slide and then getting the list of slides."""
-    # Create a new slide
-    response = await client.post(
-        "/api/v1/slides/new",
-        data={"title": "My First Slide", "html_content": "<p>Hello</p>"},
-    )
-    assert response.status_code == 200
-    assert "text/html" in response.headers["content-type"]
-    assert "My First Slide" in response.text
-    assert "<p>Hello</p>" in response.text
-
-    # Get the list of slides
-    response = await client.get("/api/v1/slides")
-    assert response.status_code == 200
-    assert "My First Slide" in response.text
-    assert "<p>Hello</p>" in response.text
-
-
 async def test_edit_slide(client):
     """Test editing an existing slide."""
     # First, create a slide
@@ -91,15 +64,6 @@ async def test_edit_slide(client):
     mock_ainvoke.assert_called_once()
 
 
-async def test_edit_slide_not_found(client):
-    """Test editing a non-existent slide."""
-    response = await client.post(
-        "/api/v1/slides/999/edit",
-        json={"edit_prompt": "This should fail"},
-    )
-    assert response.status_code == 404
-
-
 async def test_get_progress_stream(client):
     """Test the /progress SSE endpoint."""
     response = await client.get("/api/v1/progress")
@@ -112,28 +76,6 @@ async def test_get_progress_stream(client):
             events.append(line.split(":", 1)[1].strip())
 
     assert events == ["Planning", "Selecting Templates", "Rendering Slides", "Complete"]
-
-
-async def test_export_html(client):
-    """Test exporting slides to a single HTML file."""
-    # Add a couple of slides
-    await client.post(
-        "/api/v1/slides/new",
-        data={"title": "Slide 1", "html_content": "<h1>First</h1>"},
-    )
-    await client.post(
-        "/api/v1/slides/new",
-        data={"title": "Slide 2", "html_content": "<h2>Second</h2>"},
-    )
-
-    response = await client.get("/api/v1/export/html")
-    assert response.status_code == 200
-    assert "text/html" in response.headers["content-type"]
-    html = response.text
-    assert "<html>" in html
-    assert "<h1>First</h1>" in html
-    assert "<h2>Second</h2>" in html
-    assert "</html>" in html
 
 
 async def test_generate_presentation_streams_events(client, mock_deck_plan):

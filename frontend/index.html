@@ -5,18 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Presto Deck Generator</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>Presto: AI Presentation Generator</h1>
-            <p>Enter a topic and let the AI create a presentation for you in real-time.</p>
+<body class="bg-slate-50">
+    <div class="container" x-data="prestoApp()">
+        <header class="text-center pb-5 border-b">
+            <h1 class="text-2xl font-bold text-emerald-600">Presto: AI Presentation Generator</h1>
+            <p class="text-slate-500">Enter a topic and let the AI create a presentation for you in real-time.</p>
         </header>
 
-        <form id="prompt-form">
-            <textarea id="user-prompt" name="prompt" placeholder="e.g., 'The history of space exploration' or 'An introduction to quantum computing'" required>Create a compelling presentation about the benefits of adopting renewable energy sources for a general audience. Focus on environmental impact, economic advantages, and long-term sustainability. Include key statistics and examples of successful implementations worldwide. The presentation should encourage individuals and communities to consider transitioning to green energy. Aim for a clear, engaging, and persuasive tone.</textarea>
-            <button type="submit" id="generate-btn">Generate Presentation</button>
+        <form id="prompt-form" @submit.prevent="generate()" class="flex flex-col gap-3">
+            <textarea id="user-prompt" name="prompt" class="w-full p-3 border rounded" placeholder="e.g., 'The history of space exploration' or 'An introduction to quantum computing'" required>Create a compelling presentation about the benefits of adopting renewable energy sources for a general audience. Focus on environmental impact, economic advantages, and long-term sustainability. Include key statistics and examples of successful implementations worldwide. The presentation should encourage individuals and communities to consider transitioning to green energy. Aim for a clear, engaging, and persuasive tone.</textarea>
+            <button type="submit" id="generate-btn" class="self-end bg-emerald-600 text-white px-4 py-2 rounded">Generate Presentation</button>
         </form>
+        <!-- Edit panel below the generator form -->
+        <section id="edit-panel" class="border rounded p-4">
+            <h2 class="text-xl font-semibold mb-3">Edit Slide (AI)</h2>
+            <form id="edit-slide-form" @submit.prevent="submitEdit()" class="flex flex-col gap-2">
+                <div class="flex items-center gap-2">
+                    <label for="edit-slide-id" class="text-sm text-slate-600">Selected Slide ID</label>
+                    <input id="edit-slide-id" class="border rounded p-2 w-32" type="number" min="1" placeholder="Slide ID" required />
+                    <span x-text="selectedLabel" class="text-xs text-slate-500"></span>
+                </div>
+                <textarea id="edit-slide-prompt" class="border rounded p-2" placeholder="Describe the change you want (e.g., 'Make the heading bold and add a subheading with key stats')." required>Make the content concise and emphasize the key point.</textarea>
+                <div class="flex gap-2 justify-end">
+                    <button type="button" id="export-html-btn" class="bg-slate-600 text-white px-3 py-1 rounded">Export HTML</button>
+                    <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Apply Edit</button>
+                </div>
+            </form>
+            <p class="text-xs text-slate-500 mt-1">Tip: Click any slide card to select it for editing. Double‑click to preview full size.</p>
+        </section>
 
         <main id="presentation-container">
             <div id="status-area">
@@ -28,7 +49,7 @@
             <div id="slides-area"></div>
         </main>
 
-        <footer>
+        <footer class="text-center pt-5 border-t text-slate-500">
             <p>Powered by Presto Co-pilot</p>
         </footer>
     </div>
