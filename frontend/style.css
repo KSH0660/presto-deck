@@ -31,7 +31,7 @@ body {
     margin: 20px;
     padding: 30px;
     width: 100%;
-    max-width: 900px;
+    max-width: 1200px; /* Increased max-width for a wider layout */
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -132,7 +132,8 @@ button:disabled {
 
 #slides-area {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    /* Adjust slide preview size */
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 20px;
     padding-top: 20px;
     border-top: 1px solid var(--border-color);
@@ -146,7 +147,14 @@ button:disabled {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    min-height: 200px; /* Ensure cards have a minimum height */
+    aspect-ratio: 16 / 9; /* Give slide cards a presentation aspect ratio */
+    cursor: pointer; /* Indicate it's clickable */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.slide-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px var(--shadow-color);
 }
 
 .slide-card h2 {
@@ -154,14 +162,32 @@ button:disabled {
     color: white;
     padding: 10px 15px;
     margin: 0;
-    font-size: 1.2em;
+    font-size: 1.1em;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .slide-card .slide-content {
-    padding: 15px;
     flex-grow: 1;
-    overflow-y: auto; /* Enable scrolling for long content */
+    overflow: hidden; /* Hide overflow content in the preview */
+    position: relative;
 }
+
+.slide-card .slide-content iframe {
+    /* Scale the iframe to fit the container while maintaining aspect ratio */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    transform-origin: top left;
+    /* The scaling factor will be dynamically adjusted if needed, but CSS scaling can be tricky.
+       For simplicity, we let the iframe fill the container. The content inside should be responsive. */
+}
+
 
 .slide-card .slide-content.loading {
     display: flex;
@@ -183,22 +209,6 @@ footer {
     font-size: 0.85em;
 }
 
-/* Basic responsive adjustments */
-@media (max-width: 768px) {
-    .container {
-        margin: 10px;
-        padding: 20px;
-    }
-
-    #slides-area {
-        grid-template-columns: 1fr;
-    }
-
-    button {
-        width: 100%;
-        align-self: stretch;
-    }
-}
 /* Modal Styles */
 .modal {
     display: none; /* Hidden by default */
@@ -206,72 +216,85 @@ footer {
     z-index: 1000; /* Sit on top */
     left: 0;
     top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.85); /* Darker overlay */
     justify-content: center;
     align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .modal.visible {
-    display: flex; /* Show when visible */
+    display: flex;
+    opacity: 1;
 }
 
 .modal-content {
-    background-color: var(--surface-color);
-    margin: auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 90%; /* Could be responsive */
-    max-width: 1000px; /* Max width for larger screens */
+    background-color: #2c2c2c; /* Dark background for the modal content area */
+    padding: 15px;
     border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
     position: relative;
+    width: 95%;
+    height: 95%;
+    max-width: 1400px;
     display: flex;
     flex-direction: column;
-    max-height: 90vh; /* Limit height to viewport */
 }
 
 .close-button {
-    color: #aaa;
+    color: #ccc;
     position: absolute;
-    top: 10px;
-    right: 25px;
-    font-size: 28px;
+    top: -5px;
+    right: 10px;
+    font-size: 35px;
     font-weight: bold;
     cursor: pointer;
     transition: color 0.3s ease;
+    z-index: 10;
 }
 
 .close-button:hover,
 .close-button:focus {
-    color: #333;
-    text-decoration: none;
+    color: white;
 }
 
 #modal-slide-viewer {
     flex-grow: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding-top: 20px; /* Space for close button */
+    width: 100%;
+    height: 100%;
 }
 
 #modal-slide-viewer iframe {
     width: 100%;
     height: 100%;
     border: none;
-    background-color: transparent;
+    background-color: white; /* Set a background for the slide content */
+    border-radius: 4px;
 }
 
-/* Adjust slide card for pointer */
-.slide-card {
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
 
-.slide-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 16px var(--shadow-color);
+/* Basic responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        margin: 10px;
+        padding: 20px;
+        max-width: 100%;
+    }
+
+    #slides-area {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+
+    button {
+        width: 100%;
+        align-self: stretch;
+    }
+
+    .modal-content {
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+    }
 }
