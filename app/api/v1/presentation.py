@@ -1,8 +1,8 @@
 # app/api/v1/presentation.py
 import logging
 import asyncio
-from fastapi import APIRouter, HTTPException, Form
-from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse
 from app.core.streaming import stream_presentation
 from app.models.schema import GenerateRequest, SlideEditRequest
 from app.core.llm import make_llm
@@ -32,43 +32,31 @@ EDIT_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(
 )
 
 
-@router.get("/slides", response_class=HTMLResponse)
-async def get_slides():
-    """Returns the current list of slides as HTML partials."""
-    if not slides_db:
-        return "<div>No slides yet. Generate a presentation to get started!</div>"
-
-    # In a real app, you'd use a template engine here
-    html_content = ""
-    for slide in slides_db:
-        html_content += f'<div id="slide-{slide["id"]}"><h3>{slide["title"]}</h3><div>{slide["html_content"]}</div></div>'
-    return html_content
-
-
-@router.post("/slides/new", response_class=HTMLResponse)
-async def create_slide(title: str = Form(...), html_content: str = Form(...)):
-    """Creates a new slide and returns the updated slide list."""
-    global next_slide_id
-    new_slide = {
-        "id": next_slide_id,
-        "title": title,
-        "html_content": html_content,
-        "version": 1,
-    }
-    slides_db.append(new_slide)
-    next_slide_id += 1
-    return await get_slides()
-
-
 @router.post("/slides/{slide_id}/edit", response_class=HTMLResponse)
 async def edit_slide(slide_id: int, req: SlideEditRequest):
-    """Edits a slide using an AI prompt and returns the updated slide list."""
+    """AI 프롬프트로 슬라이드를 편집하고, 서버의 슬라이드 상태를 HTML로 반환합니다.
+
+    슬라이드가 없을 경우 `client_html_hint`를 기반으로 새로 생성 후 편집합니다.
+    반환값은 서버 슬라이드 전체를 단일 HTML로 합친 결과입니다.
+    """
+    global next_slide_id
     slide_to_edit = next((s for s in slides_db if s["id"] == slide_id), None)
 
-    if not slide_to_edit:
-        raise HTTPException(status_code=404, detail="Slide not found")
+    # 슬라이드가 없으면 생성(초기 HTML 힌트가 있으면 사용)
+    if slide_to_edit is None:
+        initial_html = req.client_html_hint or ""
+        new_title = f"Slide {slide_id}"
+        slide_to_edit = {
+            "id": slide_id,
+            "title": new_title,
+            "html_content": initial_html,
+            "version": 0,
+        }
+        slides_db.append(slide_to_edit)
+        # next_slide_id는 최대치 기준으로 보정
+        next_slide_id = max(next_slide_id, slide_id + 1)
 
-    # AI-powered editing
+    # AI 편집 체인 실행
     llm = make_llm()
     chain = EDIT_PROMPT_TEMPLATE | llm | StrOutputParser()
 
@@ -82,14 +70,23 @@ async def edit_slide(slide_id: int, req: SlideEditRequest):
     slide_to_edit["html_content"] = new_html
     slide_to_edit["version"] += 1
 
-    return await get_slides()
+    # 서버 보유 슬라이드 전체를 HTML로 렌더링하여 반환
+    if not slides_db:
+        return HTMLResponse(
+            content="<div>No slides yet. Generate a presentation to get started!</div>"
+        )
+    html_content = ""
+    for slide in slides_db:
+        html_content += (
+            f'<div id="slide-{slide["id"]}"><h3>{slide["title"]}</h3>'
+            f'<div>{slide["html_content"]}</div></div>'
+        )
+    return HTMLResponse(content=html_content)
 
 
 @router.post("/generate")
 async def generate_presentation(req: GenerateRequest):
-    """
-    Generates and streams a presentation as Server-Sent Events (SSE).
-    """
+    """프레젠테이션을 생성하고 SSE로 실시간 스트림합니다."""
 
     async def event_generator():
         try:
@@ -110,9 +107,20 @@ async def generate_presentation(req: GenerateRequest):
     )
 
 
+@router.delete("/slides/{slide_id}/delete")
+async def delete_slide(slide_id: int):
+    """슬라이드를 삭제하고 결과 상태를 반환합니다."""
+    global slides_db
+    before = len(slides_db)
+    slides_db = [s for s in slides_db if s["id"] != slide_id]
+    if len(slides_db) == before:
+        raise HTTPException(status_code=404, detail="Slide not found")
+    return JSONResponse({"status": "deleted", "id": slide_id})
+
+
 @router.get("/progress", response_class=StreamingResponse)
 async def get_progress():
-    """Streams progress updates using SSE."""
+    """SSE로 진행 상황을 순차적으로 전송합니다."""
 
     async def progress_generator():
         steps = ["Planning", "Selecting Templates", "Rendering Slides", "Complete"]
@@ -125,7 +133,7 @@ async def get_progress():
 
 @router.get("/export/html", response_class=HTMLResponse)
 async def export_html():
-    """Exports all slides as a single HTML file."""
+    """모든 슬라이드를 하나의 HTML 문서로 내보냅니다."""
     if not slides_db:
         return "<div>No slides to export.</div>"
 

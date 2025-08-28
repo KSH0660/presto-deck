@@ -206,6 +206,7 @@ button:disabled {
     aspect-ratio: 16 / 9; /* Give slide cards a presentation aspect ratio */
     cursor: pointer; /* Indicate it's clickable */
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
 }
 
 .slide-card:hover {
@@ -255,6 +256,33 @@ button:disabled {
 
 .slide-card .slide-content.loading::after {
     content: 'Loading...';
+}
+
+.slide-card.selected {
+    outline: 3px solid #60a5fa; /* sky-400 */
+    box-shadow: 0 4px 16px var(--shadow-color);
+}
+
+.slide-card .card-footer {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 6px 8px;
+    border-top: 1px solid var(--border-color);
+}
+
+.slide-card .card-footer button {
+    background: #64748b; /* slate-500 */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.slide-card .card-footer .danger {
+    background: #ef4444; /* red-500 */
 }
 
 footer {
