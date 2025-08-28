@@ -2,7 +2,7 @@
 
 import logging  # Added
 from typing import Dict, List
-from app.models.schema import SlideSpec, DeckPlan, SlideHTML
+from app.models.schema import SlideSpec, DeckPlan, SlideHTML, GenerateRequest
 from app.core.content_writer import write_slide_content, subset_catalog_to_prompt
 
 logger = logging.getLogger(__name__)  # Added
@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)  # Added
 async def process_slide(
     slide_spec: SlideSpec,
     deck_plan: DeckPlan,
+    req: GenerateRequest,
     candidate_template_names: List[str],
     template_catalog: Dict[str, str],
     model: str,
@@ -29,6 +30,7 @@ async def process_slide(
     rendered_slide = await write_slide_content(
         slide_spec=slide_spec,
         deck_plan=deck_plan,
+        req=req,
         candidate_templates_html=candidate_templates_html,
         model=model,
     )

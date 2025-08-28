@@ -50,7 +50,7 @@ RENDER_SYSTEM = (
 )
 RENDER_PROMPT = PromptTemplate.from_template(
     "{system}\n"
-    "Deck context (for tone/consistency): topic='{topic}', audience='{audience}'.\n\n"
+    "Deck context (for tone/consistency): topic='{topic}', audience='{audience}', theme='{theme}', color_preference='{color_preference}'.\n\n"
     "Candidate Templates (ONLY these):\n{candidate_templates}\n\n"
     "Slide JSON:\n{slide_json}\n\n"
     "Guidelines:\n"
@@ -59,6 +59,7 @@ RENDER_PROMPT = PromptTemplate.from_template(
     "- Use semantic elements and Tailwind utility classes for spacing/typography/layout.\n"
     "- Replace placeholders like [[TITLE]] and commented sections (e.g., <!-- POINTS -->) with actual content.\n"
     "- If 'numbers' exist, render a neat key-value list or small metric grid.\n"
+    "- The design should reflect the specified theme and color preferences in the choice of Tailwind CSS classes (e.g., colors, fonts, spacing).\n"
 )
 
 # --- Step C: Generate Template Summary ---

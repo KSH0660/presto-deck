@@ -3,7 +3,7 @@
 from typing import Dict, List
 from langchain.schema.runnable import Runnable
 from app.core.llm import make_llm
-from app.models.schema import SlideSpec, SlideHTML, DeckPlan
+from app.models.schema import SlideSpec, SlideHTML, DeckPlan, GenerateRequest
 from app.core.prompts import RENDER_SYSTEM, RENDER_PROMPT
 
 
@@ -25,6 +25,7 @@ def build_renderer_chain(llm) -> Runnable:
 async def write_slide_content(
     slide_spec: SlideSpec,
     deck_plan: DeckPlan,
+    req: GenerateRequest,
     candidate_templates_html: str,
     model: str,
 ) -> SlideHTML:
@@ -39,6 +40,8 @@ async def write_slide_content(
             "slide_json": slide_spec.model_dump_json(indent=2),
             "topic": deck_plan.topic,
             "audience": deck_plan.audience,
+            "theme": req.theme or "Not specified",
+            "color_preference": req.color_preference or "Not specified",
         }
     )
     return rendered_slide

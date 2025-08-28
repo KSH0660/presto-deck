@@ -26,14 +26,27 @@ class GenerateRequest(BaseModel):
 
 
 # 1) 단계 A 결과: 덱 기획
-class SlideSpec(BaseModel):
+class SlideContent(BaseModel):
+    """Slide content without layout information."""
+
     slide_id: int
     title: str
     key_points: Optional[List[str]] = None  # bullet points
     numbers: Optional[Dict[str, float]] = None  # KPI/지표
     notes: Optional[str] = None
     section: Optional[str] = None
+
+
+class SlideSpec(SlideContent):
+    """Slide content with layout candidates."""
+
     layout_candidates: Optional[List[str]] = None
+
+
+class InitialDeckPlan(BaseModel):
+    topic: str
+    audience: str
+    slides: List[SlideContent]
 
 
 class DeckPlan(BaseModel):
