@@ -54,8 +54,8 @@ async def stream_presentation(
 
         # 3. Plan the deck structure
         logger.info("Planning deck structure...")
-        deck_plan = await planner.plan_deck(req.user_prompt, model)
-        total_slides = len(deck_plan.slides)
+        initial_deck_plan = await planner.plan_deck(req.user_prompt, model)
+        total_slides = len(initial_deck_plan.slides)
         logger.info("Deck plan created with %d slides.", total_slides)
         yield await sse_event(
             "progress", {"completed": 0, "total": total_slides, "stage": "planning"}
@@ -64,7 +64,7 @@ async def stream_presentation(
         # 4. Select layouts for each slide
         logger.info("Selecting layouts for slides...")
         deck_plan = await layout_selector.run_layout_selection_for_deck(
-            deck_plan=deck_plan, user_request=req.user_prompt, model=model
+            initial_deck_plan=initial_deck_plan, user_request=req.user_prompt, model=model
         )
         logger.info("Layout selection complete.")
         yield await sse_event("deck_plan", deck_plan.model_dump())
@@ -83,6 +83,7 @@ async def stream_presentation(
                     result: SlideHTML = await slide_worker.process_slide(
                         slide_spec=slide_spec,
                         deck_plan=deck_plan,
+                        req=req,
                         candidate_template_names=slide_spec.layout_candidates or [],
                         template_catalog=template_catalog,
                         model=model,

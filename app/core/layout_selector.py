@@ -1,6 +1,6 @@
 # app/core/layout_selector.py
 import asyncio
-import logging  # Added
+import logging
 from typing import List
 
 from langchain.schema.runnable import Runnable
@@ -8,9 +8,15 @@ from langchain.schema.runnable import Runnable
 from app.core.llm import make_llm
 from app.core.prompts import SELECTOR_SYSTEM, SELECTOR_PROMPT
 from app.core.template_manager import get_template_summaries
-from app.models.schema import DeckPlan, SlideSpec, LayoutCandidates
+from app.models.schema import (
+    InitialDeckPlan,
+    SlideContent,
+    SlideSpec,
+    LayoutCandidates,
+    DeckPlan,
+)
 
-logger = logging.getLogger(__name__)  # Added
+logger = logging.getLogger(__name__)
 
 
 def build_selector_chain(llm) -> Runnable:
@@ -19,21 +25,21 @@ def build_selector_chain(llm) -> Runnable:
 
 
 async def select_layout_for_slide(
-    slide: SlideSpec,
-    deck_plan: DeckPlan,
+    slide_content: SlideContent,
+    deck_plan: InitialDeckPlan,
     user_request: str,
     template_summaries_prompt: str,
     llm,
-) -> List[str]:
-    """단일 슬라이드에 가장 적합한 레이아웃 후보들을 선택합니다."""
+) -> SlideSpec:
+    """단일 슬라이드 콘텐츠에 가장 적합한 레이아웃 후보들을 선택하여 완전한 SlideSpec을 반환합니다."""
     selector_chain = build_selector_chain(llm)
 
     slide_titles = "\n".join(f"- {s.title}" for s in deck_plan.slides)
 
     try:
         logger.debug(
-            "Selecting layout for slide %d: %s", slide.slide_id, slide.title
-        )  # Added
+            "Selecting layout for slide %d: %s", slide_content.slide_id, slide_content.title
+        )
         selection: LayoutCandidates = await selector_chain.ainvoke(
             {
                 "system": SELECTOR_SYSTEM,
@@ -41,37 +47,41 @@ async def select_layout_for_slide(
                 "deck_topic": deck_plan.topic,
                 "deck_audience": deck_plan.audience,
                 "slide_titles": slide_titles,
-                "current_slide_json": slide.model_dump_json(indent=2),
+                "current_slide_json": slide_content.model_dump_json(indent=2),
                 "template_summaries": template_summaries_prompt,
             }
         )
         logger.debug(
             "Layout selected for slide %d: %s",
-            slide.slide_id,
+            slide_content.slide_id,
             selection.layout_candidates,
-        )  # Added
-        return selection.layout_candidates
+        )
+        # SlideContent와 layout_candidates를 결합하여 SlideSpec 반환
+        return SlideSpec(
+            **slide_content.model_dump(),
+            layout_candidates=selection.layout_candidates,
+        )
     except Exception as e:
         logger.error(
             "Error during layout selection for slide %d: %s",
-            slide.slide_id,
+            slide_content.slide_id,
             e,
             exc_info=True,
-        )  # Changed
-        # LLM 호출 실패 시 빈 리스트 반환 또는 기본값 사용
-        return []
+        )
+        # LLM 호출 실패 시 빈 리스트로 layout_candidates를 채워 SlideSpec 반환
+        return SlideSpec(**slide_content.model_dump(), layout_candidates=[])
 
 
 async def run_layout_selection_for_deck(
-    deck_plan: DeckPlan, user_request: str, model: str
+    initial_deck_plan: InitialDeckPlan, user_request: str, model: str
 ) -> DeckPlan:
     """
     덱 플랜의 모든 슬라이드에 대해 병렬적으로 레이아웃 후보를 선택하고,
-    결과를 DeckPlan 객체에 업데이트하여 반환합니다.
+    완성된 DeckPlan 객체를 생성하여 반환합니다.
     """
     logger.info(
-        "Starting layout selection for %d slides.", len(deck_plan.slides)
-    )  # Added
+        "Starting layout selection for %d slides.", len(initial_deck_plan.slides)
+    )
     llm = make_llm(model=model)
     summaries = get_template_summaries()
     summaries_prompt = "\n".join(
@@ -79,14 +89,21 @@ async def run_layout_selection_for_deck(
     )
 
     tasks = [
-        select_layout_for_slide(slide, deck_plan, user_request, summaries_prompt, llm)
-        for slide in deck_plan.slides
+        select_layout_for_slide(
+            slide_content, initial_deck_plan, user_request, summaries_prompt, llm
+        )
+        for slide_content in initial_deck_plan.slides
     ]
 
-    results: List[List[str]] = await asyncio.gather(*tasks)
+    # List[SlideSpec]이 반환됨
+    slide_specs: List[SlideSpec] = await asyncio.gather(*tasks)
 
-    for slide, candidates in zip(deck_plan.slides, results):
-        slide.layout_candidates = candidates
+    # 최종 DeckPlan 객체 생성
+    final_deck_plan = DeckPlan(
+        topic=initial_deck_plan.topic,
+        audience=initial_deck_plan.audience,
+        slides=slide_specs,
+    )
 
-    logger.info("Layout selection completed for all slides.")  # Added
-    return deck_plan
+    logger.info("Layout selection completed for all slides.")
+    return final_deck_plan
