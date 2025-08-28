@@ -13,3 +13,4 @@ pre-commit
 pydantic
 xhtml2pdf
 streamlit
+python-multipart

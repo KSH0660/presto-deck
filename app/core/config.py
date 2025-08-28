@@ -20,9 +20,10 @@ class Settings(BaseSettings):
     PREMIUM_MODEL: str = "gpt-5"
     PREMIUM_MAX_CONCURRENCY: int = 12
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8"
+    }
 
 
 # Create a single, reusable instance of the settings
