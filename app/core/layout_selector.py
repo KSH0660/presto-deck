@@ -109,4 +109,9 @@ async def run_layout_selection_for_deck(
     )
 
     logger.info("Layout selection completed for all slides.")
+    logger.info(
+        "Deck style -> theme: %s | colors: %s",
+        final_deck_plan.theme or "Not specified",
+        final_deck_plan.color_preference or "Not specified",
+    )
     return final_deck_plan

@@ -25,4 +25,9 @@ async def plan_deck(user_request: str, model: str) -> InitialDeckPlan:
     logger.info(
         "Deck planning completed. Generated %d slides.", len(initial_deck_plan.slides)
     )
+    logger.info(
+        "Planned style -> theme: %s | colors: %s",
+        getattr(initial_deck_plan, "theme", None) or "Not specified",
+        getattr(initial_deck_plan, "color_preference", None) or "Not specified",
+    )
     return initial_deck_plan

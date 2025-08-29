@@ -19,15 +19,56 @@
     const progressBarContainer = $('progress-bar-container')
     const progressBar = $('progress-bar')
     const generateBtn = $('generate-btn')
+    const deckPlanSection = $('deck-plan-section')
+    const deckPlanMeta = $('deck-plan-meta')
+    const deckPlanTitles = $('deck-plan-titles')
+
+    function clearDeckPlan() {
+      if (deckPlanTitles) deckPlanTitles.innerHTML = ''
+      if (deckPlanMeta) deckPlanMeta.textContent = ''
+      deckPlanSection?.classList.add('hidden')
+      if (!window.Presto) window.Presto = {}
+      window.Presto.deckPlan = null
+    }
+
+    function renderDeckPlan(data) {
+      try {
+        const theme = data.theme || 'Not specified'
+        const colors = data.color_preference || 'Not specified'
+        if (deckPlanMeta) {
+          deckPlanMeta.innerHTML = `
+            <div><span class="font-semibold">Topic:</span> ${data.topic}</div>
+            <div><span class="font-semibold">Audience:</span> ${data.audience}</div>
+            <div><span class="font-semibold">Theme:</span> ${theme}</div>
+            <div><span class="font-semibold">Colors:</span> ${colors}</div>
+          `
+        }
+        if (deckPlanTitles) {
+          deckPlanTitles.innerHTML = ''
+          ;(data.slides || []).forEach((s) => {
+            const li = document.createElement('li')
+            li.textContent = s.title || 'Untitled'
+            deckPlanTitles.appendChild(li)
+          })
+        }
+        deckPlanSection?.classList.remove('hidden')
+        if (!window.Presto) window.Presto = {}
+        window.Presto.deckPlan = data
+      } catch (e) {
+        console.warn('Failed to render deck plan', e)
+      }
+    }
 
     document.addEventListener('started', (event) => {
       const data = event.detail
       if (statusText) statusText.textContent = `Generation started (model: ${data.model})...`
+      clearDeckPlan()
     })
 
     document.addEventListener('deck_plan', async (event) => {
       const data = event.detail
       if (statusText) statusText.textContent = `Deck plan ready. Generating ${data.slides.length} slides.`
+      renderDeckPlan(data)
       await window.Presto?.slides?.fetchAndRenderSlides()
     })
 

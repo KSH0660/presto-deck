@@ -61,6 +61,7 @@ RENDER_PROMPT = PromptTemplate.from_template(
     "- Use semantic elements and Tailwind utility classes for spacing/typography/layout.\n"
     "- Replace placeholders like [[TITLE]] and commented sections (e.g., <!-- POINTS -->) with actual content.\n"
     "- If 'numbers' exist, render a neat key-value list or small metric grid.\n"
+    "- Always maintain a 16:9 slide viewport (e.g., 1280x720 or CSS aspect-ratio: 16/9) and avoid vertical scrolling/overflow.\n"
     "- The design should reflect the specified theme and color preferences in the choice of Tailwind CSS classes (e.g., colors, fonts, spacing).\n"
 )
 # Make sure the slide has a 16:9 ratio. / 세로로 빠져나가지 않도록 등등..
