@@ -76,4 +76,5 @@ cython_debug/
 # LangChain Cache DB
 .langchain.db
 
-instruction.md
+# Logs
+logs/

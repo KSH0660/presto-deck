@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     MAX_CONCURRENCY_LIMIT: int = 48
     HEARTBEAT_INTERVAL_SEC: int = 15
 
+    # Logging
+    LOG_DIR: str = "logs"
+    LOG_LEVEL: str = "INFO"  # DEBUG, INFO, WARNING, ERROR
+    LOG_ROTATE_WHEN: str = "midnight"  # 'S', 'M', 'H', 'D', 'W0'-'W6', 'midnight'
+    LOG_ROTATE_INTERVAL: int = 1  # Rotation interval for TimedRotatingFileHandler
+    LOG_BACKUP_COUNT: int = 7  # Number of rotated files to keep
+    LOG_FILE_BASENAME: str = "presto"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

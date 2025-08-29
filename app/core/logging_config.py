@@ -2,37 +2,57 @@
 
 import logging
 import sys
+import os
+from logging.handlers import TimedRotatingFileHandler
+from app.core.config import settings
 
 
 def configure_logging():
-    """
-    Configures the logging system for the application.
-    """
-    # Get the root logger
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)  # Default level
+    """애플리케이션 로깅을 설정합니다(콘솔 + 파일 회전)."""
+    # Root logger 설정
+    root = logging.getLogger()
+    level_name = (settings.LOG_LEVEL or "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+    root.setLevel(level)
 
-    # Create a console handler with a formatter
-    console_handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    fmt = logging.Formatter(
+        "%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
-    console_handler.setFormatter(formatter)
 
-    # Add the handler to the logger if not already added
+    # 콘솔 핸들러
     if not any(
-        isinstance(handler, logging.StreamHandler) for handler in logger.handlers
+        isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+        for h in root.handlers
     ):
-        logger.addHandler(console_handler)
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setFormatter(fmt)
+        ch.setLevel(level)
+        root.addHandler(ch)
 
-    # Set specific log levels for third-party libraries if needed
+    # 파일 핸들러 (시간 기반 회전)
+    try:
+        log_dir = settings.LOG_DIR or "logs"
+        os.makedirs(log_dir, exist_ok=True)
+        logfile = os.path.join(log_dir, f"{settings.LOG_FILE_BASENAME}.log")
+        if not any(isinstance(h, TimedRotatingFileHandler) for h in root.handlers):
+            fh = TimedRotatingFileHandler(
+                filename=logfile,
+                when=settings.LOG_ROTATE_WHEN,
+                interval=int(settings.LOG_ROTATE_INTERVAL or 1),
+                backupCount=int(settings.LOG_BACKUP_COUNT or 7),
+                encoding="utf-8",
+                utc=False,
+            )
+            fh.setFormatter(fmt)
+            fh.setLevel(level)
+            root.addHandler(fh)
+    except Exception:
+        # 파일 핸들러 설정 실패 시 콘솔만 사용
+        pass
+
+    # 외부 라이브러리 로그 레벨 조정
     logging.getLogger("uvicorn").setLevel(logging.INFO)
     logging.getLogger("uvicorn.access").setLevel(logging.INFO)
-    logging.getLogger("httpx").setLevel(logging.WARNING)  # Suppress verbose httpx logs
-    logging.getLogger("httpcore").setLevel(
-        logging.WARNING
-    )  # Suppress verbose httpcore logs
-
-    # Example of how to get a logger in other modules:
-    # logger = logging.getLogger(__name__)
-    # logger.info("This is an info message from a module.")
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
