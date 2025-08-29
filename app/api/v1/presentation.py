@@ -4,7 +4,13 @@ import asyncio
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse
 from app.core.streaming import stream_presentation
-from app.models.schema import GenerateRequest, SlideEditRequest, SlideAddRequest
+from app.models.schema import (
+    GenerateRequest,
+    SlideEditRequest,
+    SlideAddRequest,
+    SlideModel,
+    DeleteResponse,
+)
 from app.core.edit import edit_slide_content
 from app.core.add import add_slide_content
 from app.core import state
@@ -14,8 +20,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/slides/{slide_id}/edit", response_class=JSONResponse)
-async def edit_slide(slide_id: int, req: SlideEditRequest):
+@router.post(
+    "/slides/{slide_id}/edit",
+    response_class=JSONResponse,
+    response_model=SlideModel,
+)
+async def edit_slide(slide_id: int, req: SlideEditRequest) -> JSONResponse:
     logger.info(
         f"Editing slide ID: {slide_id} with prompt: '{req.edit_prompt[:50]}...'"
     )
@@ -52,8 +62,13 @@ async def edit_slide(slide_id: int, req: SlideEditRequest):
     )
 
 
-@router.post("/slides/add", response_class=JSONResponse, status_code=201)
-async def add_slide(req: SlideAddRequest):
+@router.post(
+    "/slides/add",
+    response_class=JSONResponse,
+    response_model=SlideModel,
+    status_code=201,
+)
+async def add_slide(req: SlideAddRequest) -> JSONResponse:
     """Generates and adds a new slide to the presentation."""
 
     new_content = await add_slide_content(req.add_prompt)
@@ -72,8 +87,8 @@ async def add_slide(req: SlideAddRequest):
     return JSONResponse(content=new_slide, status_code=201)
 
 
-@router.get("/slides", response_class=JSONResponse)
-async def get_slides():
+@router.get("/slides", response_class=JSONResponse, response_model=list[SlideModel])
+async def get_slides() -> JSONResponse:
     """Returns the current list of all slides."""
     return JSONResponse(content=state.slides_db)
 
@@ -103,7 +118,10 @@ async def generate_presentation(req: GenerateRequest) -> StreamingResponse:
     )
 
 
-@router.delete("/slides/{slide_id}/delete")
+@router.delete(
+    "/slides/{slide_id}/delete",
+    response_model=DeleteResponse,
+)
 async def delete_slide(slide_id: int) -> JSONResponse:
     """슬라이드를 삭제하고 결과 상태를 반환합니다."""
     before = len(state.slides_db)

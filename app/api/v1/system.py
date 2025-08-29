@@ -1,13 +1,14 @@
 from fastapi import APIRouter
 from app.core.config import settings
 from app.core.template_manager import get_template_summaries
+from app.models.schema import MetaResponse, TemplatesResponse
 
 
 router = APIRouter()
 
 
-@router.get("/meta")
-async def meta():
+@router.get("/meta", response_model=MetaResponse)
+async def meta() -> MetaResponse:
     """Service metadata and operational configuration."""
     quality = {
         "draft": {
@@ -33,8 +34,8 @@ async def meta():
     }
 
 
-@router.get("/templates")
-async def list_templates():
+@router.get("/templates", response_model=TemplatesResponse)
+async def list_templates() -> TemplatesResponse:
     """List available slide templates by filename."""
     catalog = get_template_summaries()
     return {"templates": sorted(list(catalog.keys()))}

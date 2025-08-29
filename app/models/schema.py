@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Literal
 from pydantic import BaseModel, Field
 from app.models.types import QualityTier
 
@@ -86,3 +86,73 @@ class TemplateSummary(BaseModel):
     summary: str = Field(
         description="A one-sentence summary of the template's structure and ideal use case."
     )
+
+
+# --- Response Models (API) ---
+
+
+class HealthResponse(BaseModel):
+    """헬스 체크 응답 모델"""
+
+    status: Literal["ok"]
+
+
+class ReadyEnv(BaseModel):
+    """레디니스 환경 상태"""
+
+    OPENAI_CONFIGURED: bool
+
+
+class ReadyResponse(BaseModel):
+    """레디니스 체크 응답 모델"""
+
+    status: Literal["ready"]
+    templates: int
+    env: ReadyEnv
+
+
+class QualityTierConfig(BaseModel):
+    """품질 티어 설정 값"""
+
+    model: Optional[str] = None
+    max_concurrency: int
+
+
+class QualityTiers(BaseModel):
+    """세 가지 품질 티어 설정"""
+
+    draft: QualityTierConfig
+    default: QualityTierConfig
+    premium: QualityTierConfig
+
+
+class MetaResponse(BaseModel):
+    """메타 정보 응답"""
+
+    service: Literal["presto-api"]
+    version: str
+    quality_tiers: QualityTiers
+    template_count: int
+
+
+class TemplatesResponse(BaseModel):
+    """템플릿 목록 응답"""
+
+    templates: List[str]
+
+
+class SlideModel(BaseModel):
+    """단일 슬라이드 스키마"""
+
+    id: int
+    title: str
+    html_content: str
+    version: int
+    status: str
+
+
+class DeleteResponse(BaseModel):
+    """삭제 결과 응답"""
+
+    status: Literal["deleted"]
+    id: int
