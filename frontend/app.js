@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressBarContainer = document.getElementById('progress-bar-container');
     const progressBar = document.getElementById('progress-bar');
     const slidesArea = document.getElementById('slides-area');
+    const sortIdBtn = document.getElementById('sort-id-btn');
 
     // Modal elements
     const slideModal = document.getElementById('slide-modal');
@@ -25,6 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedId = null;
     let pollInterval = null; // For polling slide status
 
+    // Sorting state
+    let sortActive = false; // false -> arrival order, true -> sort by id
+    let sortAsc = true; // sorting direction when active
+
     // Function to fetch and render all slides
     async function fetchAndRenderSlides() {
         try {
@@ -32,7 +37,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const slides = await response.json();
+            let slides = await response.json();
+            if (sortActive) {
+                slides = slides.slice().sort((a, b) => (sortAsc ? a.id - b.id : b.id - a.id));
+            }
             slidesArea.innerHTML = ''; // Clear current slides
             generatedSlides.clear(); // Clear map to resync
 
@@ -131,6 +139,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial fetch of slides when the page loads
     fetchAndRenderSlides();
+
+    // Sort button toggle: Arrival -> ID ↑ -> ID ↓ -> ID ↑ ...
+    if (sortIdBtn) {
+        sortIdBtn.addEventListener('click', () => {
+            if (!sortActive) {
+                sortActive = true;
+                sortAsc = true;
+            } else {
+                sortAsc = !sortAsc;
+            }
+            sortIdBtn.textContent = sortActive ? `Sort: ID ${sortAsc ? '↑' : '↓'}` : 'Sort: Arrival';
+            fetchAndRenderSlides();
+        });
+    }
 
     // Periodically fetch slides if there are any in editing state
     // This will be started/stopped by submitEdit
