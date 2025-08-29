@@ -61,6 +61,8 @@ RENDER_PROMPT = PromptTemplate.from_template(
     "- If 'numbers' exist, render a neat key-value list or small metric grid.\n"
     "- The design should reflect the specified theme and color preferences in the choice of Tailwind CSS classes (e.g., colors, fonts, spacing).\n"
 )
+# Make sure the slide has a 16:9 ratio. / 세로로 빠져나가지 않도록 등등..
+
 
 # --- Step C: Generate Template Summary ---
 TEMPLATE_SUMMARY_SYSTEM = (
