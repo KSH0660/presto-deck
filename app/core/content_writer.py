@@ -1,10 +1,13 @@
 # app/core/content_writer.py
 
 from typing import Dict, List
+import logging
 from langchain.schema.runnable import Runnable
 from app.core.llm import make_llm
 from app.models.schema import SlideSpec, SlideHTML, DeckPlan, GenerateRequest
 from app.core.prompts import RENDER_PROMPT
+
+logger = logging.getLogger(__name__)
 
 
 def subset_catalog_to_prompt(catalog: Dict[str, str], names: List[str]) -> str:
@@ -33,14 +36,25 @@ async def write_slide_content(
     llm = make_llm(model=model)
     renderer_chain = build_renderer_chain(llm)
 
+    # 요청값 우선, 없으면 덱 기획에서 제안한 테마/컬러를 사용
+    theme = req.theme or deck_plan.theme or "Not specified"
+    color_pref = req.color_preference or deck_plan.color_preference or "Not specified"
+
+    logger.info(
+        "Rendering slide %d with theme='%s' | colors='%s'",
+        slide_spec.slide_id,
+        theme,
+        color_pref,
+    )
+
     rendered_slide: SlideHTML = await renderer_chain.ainvoke(
         {
             "candidate_templates": candidate_templates_html,
             "slide_json": slide_spec.model_dump_json(indent=2),
             "topic": deck_plan.topic,
             "audience": deck_plan.audience,
-            "theme": req.theme or "Not specified",
-            "color_preference": req.color_preference or "Not specified",
+            "theme": theme,
+            "color_preference": color_pref,
         }
     )
     return rendered_slide

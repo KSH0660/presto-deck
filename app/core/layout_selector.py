@@ -103,8 +103,15 @@ async def run_layout_selection_for_deck(
     final_deck_plan = DeckPlan(
         topic=initial_deck_plan.topic,
         audience=initial_deck_plan.audience,
+        theme=initial_deck_plan.theme,
+        color_preference=initial_deck_plan.color_preference,
         slides=slide_specs,
     )
 
     logger.info("Layout selection completed for all slides.")
+    logger.info(
+        "Deck style -> theme: %s | colors: %s",
+        final_deck_plan.theme or "Not specified",
+        final_deck_plan.color_preference or "Not specified",
+    )
     return final_deck_plan
