@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const exportHtmlBtn = document.getElementById('export-html-btn');
 
-    const API = 'http://127.0.0.1:8000/api/v1';
+    // Use same-origin API base to avoid CORS and host mismatches
+    const API = `${location.origin}/api/v1`;
     const generatedSlides = new Map(); // slide_id -> { title, html }
     let selectedId = null;
     let pollInterval = null; // For polling slide status
@@ -145,6 +146,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Expose helpers to global so Alpine component can call them
+    window.fetchAndRenderSlides = fetchAndRenderSlides;
+    window.startPollingSlides = startPollingSlides;
+    window.stopPollingSlides = stopPollingSlides;
+
     // Centralized event listeners for custom events
     document.addEventListener('started', (event) => {
         const data = event.detail;
@@ -262,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Alpine component providing methods used in the template
 function prestoApp() {
-    const API = 'http://127.0.0.1:8000/api/v1';
+    const API = `${location.origin}/api/v1`;
     return {
         selectedLabel: 'No slide selected',
         init() {
@@ -293,7 +299,7 @@ function prestoApp() {
             const payload = { edit_prompt: prompt };
 
             // Start polling for status updates
-            startPollingSlides();
+            window.startPollingSlides?.();
 
             try {
                 const res = await fetch(`${API}/slides/${id}/edit`, {
@@ -309,8 +315,8 @@ function prestoApp() {
                 }
 
                 // After successful edit, stop polling and re-render all slides
-                stopPollingSlides();
-                await fetchAndRenderSlides();
+                window.stopPollingSlides?.();
+                await window.fetchAndRenderSlides?.();
 
             } catch (error) {
                 console.error('Error submitting edit:', error);
