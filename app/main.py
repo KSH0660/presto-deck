@@ -13,7 +13,7 @@ from app.core.template_manager import (
     initialize_template_data,
     get_template_summaries,
 )
-from app.core.logging import configure_logging
+from app.core.logging_config import configure_logging
 
 configure_logging()
 
