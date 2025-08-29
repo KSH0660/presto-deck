@@ -4,7 +4,7 @@ from typing import Dict, List
 from langchain.schema.runnable import Runnable
 from app.core.llm import make_llm
 from app.models.schema import SlideSpec, SlideHTML, DeckPlan, GenerateRequest
-from app.core.prompts import RENDER_SYSTEM, RENDER_PROMPT
+from app.core.prompts import RENDER_PROMPT
 
 
 def subset_catalog_to_prompt(catalog: Dict[str, str], names: List[str]) -> str:
@@ -35,7 +35,6 @@ async def write_slide_content(
 
     rendered_slide: SlideHTML = await renderer_chain.ainvoke(
         {
-            "system": RENDER_SYSTEM,
             "candidate_templates": candidate_templates_html,
             "slide_json": slide_spec.model_dump_json(indent=2),
             "topic": deck_plan.topic,

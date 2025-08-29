@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+from app.models.schema import HealthResponse, ReadyResponse
 import asyncio
 from contextlib import asynccontextmanager
 
@@ -59,19 +62,14 @@ app.include_router(presentation.router, prefix="/api/v1")
 app.include_router(system_api.router, prefix="/api/v1")
 
 
-@app.get("/")
-async def read_root():
-    return {"message": "Welcome to Presto API"}
-
-
-@app.get("/healthz")
-async def healthz():
+@app.get("/healthz", response_model=HealthResponse)
+async def healthz() -> HealthResponse:
     """Liveness probe endpoint."""
     return {"status": "ok"}
 
 
-@app.get("/readyz")
-async def readyz():
+@app.get("/readyz", response_model=ReadyResponse)
+async def readyz() -> ReadyResponse:
     """Readiness probe with lightweight checks."""
     catalog = get_template_summaries()
     return {
@@ -79,3 +77,16 @@ async def readyz():
         "templates": len(catalog),
         "env": {"OPENAI_CONFIGURED": bool(settings.OPENAI_API_KEY)},
     }
+
+
+# Mount frontend static files at root (registered last to avoid shadowing API routes)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = PROJECT_ROOT / "frontend"
+
+if FRONTEND_DIR.exists():
+    # html=True 는 index.html을 기본 문서로 제공합니다.
+    app.mount(
+        "/",
+        StaticFiles(directory=str(FRONTEND_DIR), html=True),
+        name="frontend",
+    )

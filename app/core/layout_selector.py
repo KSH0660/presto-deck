@@ -6,7 +6,7 @@ from typing import List
 from langchain.schema.runnable import Runnable
 
 from app.core.llm import make_llm
-from app.core.prompts import SELECTOR_SYSTEM, SELECTOR_PROMPT
+from app.core.prompts import SELECTOR_PROMPT
 from app.core.template_manager import get_template_summaries
 from app.models.schema import (
     InitialDeckPlan,
@@ -44,7 +44,6 @@ async def select_layout_for_slide(
         )
         selection: LayoutCandidates = await selector_chain.ainvoke(
             {
-                "system": SELECTOR_SYSTEM,
                 "user_request": user_request,
                 "deck_topic": deck_plan.topic,
                 "deck_audience": deck_plan.audience,
