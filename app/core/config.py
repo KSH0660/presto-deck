@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     PREMIUM_MODEL: str = "gpt-5"
     PREMIUM_MAX_CONCURRENCY: int = 12
 
+    # Global limits and toggles
+    MAX_CONCURRENCY_LIMIT: int = 48
+    HEARTBEAT_INTERVAL_SEC: int = 15
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

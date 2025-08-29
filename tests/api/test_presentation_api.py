@@ -69,6 +69,20 @@ async def test_delete_slide(client):
     assert slides == []
 
 
+async def test_edit_404(client):
+    """존재하지 않는 슬라이드 편집 시 404를 반환합니다."""
+    resp = await client.post("/api/v1/slides/999/edit", json={"edit_prompt": "x"})
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Slide not found"
+
+
+async def test_delete_404(client):
+    """존재하지 않는 슬라이드 삭제 시 404를 반환합니다."""
+    resp = await client.delete("/api/v1/slides/999/delete")
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Slide not found"
+
+
 async def test_export_html(client):
     """HTML 내보내기가 빈 상태와 비어있지 않은 상태 모두 동작합니다."""
     # 빈 상태
@@ -99,7 +113,7 @@ async def test_progress_sse(client):
 async def test_generate_sse_smoke(client):
     """generate 스트림이 SSE 형태로 동작하는지 스모크 테스트 (내부 스트림 패치)."""
 
-    async def fake_stream(_req):
+    async def fake_stream(_req, **_kwargs):
         yield "event: started\ndata: {}\n\n"
         yield 'event: slide_rendered\ndata: {"index":0}\n\n'
         yield 'event: completed\ndata: {"total":1}\n\n'

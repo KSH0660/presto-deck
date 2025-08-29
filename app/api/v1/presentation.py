@@ -74,7 +74,7 @@ async def add_slide(req: SlideAddRequest) -> JSONResponse:
     new_content = await add_slide_content(req.add_prompt)
 
     new_slide = {
-        "id": state.next_slide_id,
+        "id": state.get_next_slide_id(),
         "title": new_content["title"],
         "html_content": new_content["html_content"],
         "version": 1,
@@ -82,7 +82,6 @@ async def add_slide(req: SlideAddRequest) -> JSONResponse:
     }
 
     state.slides_db.append(new_slide)
-    state.next_slide_id += 1
 
     return JSONResponse(content=new_slide, status_code=201)
 
@@ -97,12 +96,20 @@ async def get_slides() -> JSONResponse:
 async def generate_presentation(req: GenerateRequest) -> StreamingResponse:
     """프레젠테이션을 생성하고 SSE로 실시간 스트림합니다."""
     state.slides_db.clear()
-    state.next_slide_id = 1
+    state.reset_slide_ids(1)
 
     async def event_generator():
+        import asyncio
+
+        cancel_event = asyncio.Event()
         try:
-            async for event_data in stream_presentation(req):
+            async for event_data in stream_presentation(req, cancel_event=cancel_event):
                 yield event_data.encode("utf-8")
+        except asyncio.CancelledError:
+            # 클라이언트 연결 종료 시 작업 취소 신호를 전파
+            cancel_event.set()
+            logger.info("SSE client disconnected; cancelling remaining tasks.")
+            raise
         except Exception as e:
             logger.error("Client-side error or cancellation: %s", e, exc_info=True)
             pass

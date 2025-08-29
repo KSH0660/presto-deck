@@ -21,8 +21,8 @@ def reset_state():
     """각 테스트 전후로 인메모리 슬라이드 상태를 초기화합니다."""
     # before
     state.slides_db.clear()
-    state.next_slide_id = 1
+    state.reset_slide_ids(1)
     yield
     # after
     state.slides_db.clear()
-    state.next_slide_id = 1
+    state.reset_slide_ids(1)

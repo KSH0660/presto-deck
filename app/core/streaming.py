@@ -2,7 +2,8 @@
 import asyncio
 import json
 import logging  # Added
-from typing import AsyncGenerator, Dict
+from typing import AsyncGenerator, Dict, Optional
+import time
 
 from app.core import state
 from app.core import layout_selector, planner, slide_worker
@@ -23,7 +24,7 @@ async def sse_event(event: str, data: dict) -> str:
 
 
 async def stream_presentation(
-    req: GenerateRequest,
+    req: GenerateRequest, cancel_event: Optional[asyncio.Event] = None
 ) -> AsyncGenerator[str, None]:
     """
     Generates a presentation by planning, selecting layouts, and rendering slides,
@@ -41,7 +42,10 @@ async def stream_presentation(
             model = settings.DEFAULT_MODEL
             default_cc = settings.DEFAULT_MAX_CONCURRENCY
 
-        max_concurrency = max(1, req.config.concurrency or default_cc)
+        # Clamp concurrency within safe bounds
+        max_concurrency = min(
+            settings.MAX_CONCURRENCY_LIMIT, max(1, req.config.concurrency or default_cc)
+        )
         ordered = bool(req.config.ordered)
         total_slides = 0
 
@@ -78,10 +82,14 @@ async def stream_presentation(
         )  # TODO: 매번가져오지 말고 캐시하는게?
         semaphore = asyncio.Semaphore(max_concurrency)
         queue: asyncio.Queue = asyncio.Queue()
+        heartbeat_interval = max(5, int(settings.HEARTBEAT_INTERVAL_SEC))
+        last_heartbeat = time.time()
 
         async def run_one(idx: int, slide_spec):
             async with semaphore:
                 try:
+                    if cancel_event and cancel_event.is_set():
+                        return
                     logger.debug(
                         "Processing slide %d: %s", slide_spec.slide_id, slide_spec.title
                     )
@@ -115,7 +123,19 @@ async def stream_presentation(
         buffer: Dict[int, tuple] = {}
 
         while completed_count < total_slides:
-            idx, spec, payload = await queue.get()
+            if cancel_event and cancel_event.is_set():
+                break
+            try:
+                idx, spec, payload = await asyncio.wait_for(
+                    queue.get(), timeout=heartbeat_interval
+                )
+            except asyncio.TimeoutError:
+                # Send heartbeat periodically while waiting on work
+                now = time.time()
+                if now - last_heartbeat >= heartbeat_interval:
+                    last_heartbeat = now
+                    yield await sse_event("heartbeat", {"ts": int(now)})
+                continue
 
             if isinstance(payload, Exception):
                 logger.warning(
@@ -147,16 +167,16 @@ async def stream_presentation(
                                 "html": res.html,
                             },
                         )
+                        # Assign internal ID for persistence; may differ from LLM slide_id
                         state.slides_db.append(
                             {
-                                "id": res.slide_id,
+                                "id": state.get_next_slide_id(),
                                 "title": s.title,
                                 "html_content": res.html,
                                 "version": 1,
                                 "status": "complete",
                             }
                         )
-                        state.next_slide_id += 1
                         next_index_to_yield += 1
                 else:
                     # Yield immediately if order doesn't matter
@@ -173,14 +193,13 @@ async def stream_presentation(
                     )
                     state.slides_db.append(
                         {
-                            "id": payload.slide_id,
+                            "id": state.get_next_slide_id(),
                             "title": spec.title,
                             "html_content": payload.html,
                             "version": 1,
                             "status": "complete",
                         }
                     )
-                    state.next_slide_id += 1
 
             completed_count += 1
             logger.debug(
@@ -196,6 +215,10 @@ async def stream_presentation(
             )
 
         # 7. Final event: Completed
+        # On normal completion or cancellation, ensure tasks are cleaned up
+        if cancel_event and cancel_event.is_set():
+            for t in tasks:
+                t.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
         duration = int((asyncio.get_event_loop().time() - start_time) * 1000)
         logger.info("Presentation streaming completed in %d ms.", duration)
