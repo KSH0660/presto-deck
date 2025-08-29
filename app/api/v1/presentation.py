@@ -27,12 +27,14 @@ router = APIRouter()
 )
 async def edit_slide(slide_id: int, req: SlideEditRequest) -> JSONResponse:
     logger.info(
-        f"Editing slide ID: {slide_id} with prompt: '{req.edit_prompt[:50]}...'"
+        "Editing slide ID: %d with prompt: '%s...'",
+        slide_id,
+        (req.edit_prompt or "")[:50],
     )
     slide_to_edit = next((s for s in state.slides_db if s["id"] == slide_id), None)
 
     if not slide_to_edit:
-        logger.warning(f"Slide ID: {slide_id} not found in database.")
+        logger.warning("Slide ID: %d not found in database.", slide_id)
         raise HTTPException(status_code=404, detail="Slide not found")
 
     slide_to_edit["status"] = "editing"
@@ -50,7 +52,9 @@ async def edit_slide(slide_id: int, req: SlideEditRequest) -> JSONResponse:
         slide_to_edit["status"] = "complete"
 
     logger.info(
-        f"Successfully edited slide ID: {slide_id}. New version: {slide_to_edit['version']}"
+        "Successfully edited slide ID: %d. New version: %d",
+        slide_id,
+        slide_to_edit["version"],
     )
     return JSONResponse(
         content={
