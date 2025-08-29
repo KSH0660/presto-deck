@@ -77,9 +77,7 @@ async def stream_presentation(
         yield await sse_event("deck_plan", deck_plan.model_dump())
 
         # 5. Set up concurrent slide processing
-        template_catalog = (
-            get_template_html_catalog()
-        )  # TODO: 매번가져오지 말고 캐시하는게?
+        template_catalog = get_template_html_catalog()
         semaphore = asyncio.Semaphore(max_concurrency)
         queue: asyncio.Queue = asyncio.Queue()
         heartbeat_interval = max(5, int(settings.HEARTBEAT_INTERVAL_SEC))
@@ -167,10 +165,10 @@ async def stream_presentation(
                                 "html": res.html,
                             },
                         )
-                        # Assign internal ID for persistence; may differ from LLM slide_id
+                        # Plan 순서 보존: DB id는 계획된 slide_id를 사용
                         state.slides_db.append(
                             {
-                                "id": state.get_next_slide_id(),
+                                "id": s.slide_id,
                                 "title": s.title,
                                 "html_content": res.html,
                                 "version": 1,
@@ -191,9 +189,10 @@ async def stream_presentation(
                             "html": payload.html,
                         },
                     )
+                    # Plan 순서 보존: DB id는 계획된 slide_id를 사용
                     state.slides_db.append(
                         {
-                            "id": state.get_next_slide_id(),
+                            "id": spec.slide_id,
                             "title": spec.title,
                             "html_content": payload.html,
                             "version": 1,
@@ -220,6 +219,14 @@ async def stream_presentation(
             for t in tasks:
                 t.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        # 이후 추가 슬라이드에 충돌이 없도록 카운터를 최대 id+1로 설정
+        try:
+            if state.slides_db:
+                max_id = max(s.get("id", 0) for s in state.slides_db)
+                state.reset_slide_ids(max_id + 1)
+        except Exception:
+            pass
+
         duration = int((asyncio.get_event_loop().time() - start_time) * 1000)
         logger.info("Presentation streaming completed in %d ms.", duration)
         yield await sse_event(

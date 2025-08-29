@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressBarContainer = document.getElementById('progress-bar-container');
     const progressBar = document.getElementById('progress-bar');
     const slidesArea = document.getElementById('slides-area');
+    const sortIdBtn = document.getElementById('sort-id-btn');
 
     // Modal elements
     const slideModal = document.getElementById('slide-modal');
@@ -25,6 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedId = null;
     let pollInterval = null; // For polling slide status
 
+    // Sorting state
+    let sortActive = false; // false -> arrival order, true -> sort by id
+    let sortAsc = true; // sorting direction when active
+
     // Function to fetch and render all slides
     async function fetchAndRenderSlides() {
         try {
@@ -32,7 +37,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const slides = await response.json();
+            let slides = await response.json();
+            if (sortActive) {
+                slides = slides.slice().sort((a, b) => (sortAsc ? a.id - b.id : b.id - a.id));
+            }
             slidesArea.innerHTML = ''; // Clear current slides
             generatedSlides.clear(); // Clear map to resync
 
@@ -131,6 +139,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial fetch of slides when the page loads
     fetchAndRenderSlides();
+
+    // Sort button toggle: Arrival -> ID ↑ -> ID ↓ -> ID ↑ ...
+    if (sortIdBtn) {
+        sortIdBtn.addEventListener('click', () => {
+            if (!sortActive) {
+                sortActive = true;
+                sortAsc = true;
+            } else {
+                sortAsc = !sortAsc;
+            }
+            sortIdBtn.textContent = sortActive ? `Sort: ID ${sortAsc ? '↑' : '↓'}` : 'Sort: Arrival';
+            fetchAndRenderSlides();
+        });
+    }
 
     // Periodically fetch slides if there are any in editing state
     // This will be started/stopped by submitEdit
@@ -271,6 +293,8 @@ function prestoApp() {
     const API = `${location.origin}/api/v1`;
     return {
         selectedLabel: 'No slide selected',
+        _editing: false,
+        _editAbort: null,
         init() {
             document.addEventListener('presto:selected', (e) => {
                 const id = e.detail?.id;
@@ -279,6 +303,22 @@ function prestoApp() {
         },
         async submitEdit() {
             console.log("submitEdit called");
+
+            const applyBtn = document.querySelector('#edit-slide-form button[type="submit"]');
+            const generateBtn = document.getElementById('generate-btn');
+            const exportBtn = document.getElementById('export-html-btn');
+
+            // If already editing, treat submit as Cancel
+            if (this._editing) {
+                try { this._editAbort?.abort(); } catch {}
+                this._editing = false;
+                this._editAbort = null;
+                if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'Apply Edit'; }
+                if (generateBtn) generateBtn.disabled = false;
+                if (exportBtn) exportBtn.disabled = false;
+                await window.fetchAndRenderSlides?.();
+                return;
+            }
             const id = Number(document.getElementById('edit-slide-id').value);
             const prompt = document.getElementById('edit-slide-prompt').value.trim();
             if (!id || !prompt) {
@@ -291,21 +331,28 @@ function prestoApp() {
                 return;
             }
 
+            // Enter editing mode: disable generation buttons, turn Apply into Cancel
+            const originalApplyText = applyBtn ? applyBtn.textContent : null;
+            this._editing = true;
+            if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'Cancel'; }
+            if (generateBtn) generateBtn.disabled = true;
+            if (exportBtn) exportBtn.disabled = true;
+
             // Visual feedback: Add editing class and spinner
             card.classList.add('editing');
             const slideContentDiv = card.querySelector('.slide-content');
             slideContentDiv.innerHTML = '<div class="spinner"></div><p>Editing...</p>';
 
             const payload = { edit_prompt: prompt };
-
-            // Start polling for status updates
-            window.startPollingSlides?.();
+            const controller = new AbortController();
+            this._editAbort = controller;
 
             try {
                 const res = await fetch(`${API}/slides/${id}/edit`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(payload),
+                    signal: controller.signal,
                 });
 
                 if (!res.ok) {
@@ -314,16 +361,54 @@ function prestoApp() {
                     return;
                 }
 
-                // After successful edit, stop polling and re-render all slides
-                window.stopPollingSlides?.();
-                await window.fetchAndRenderSlides?.();
+                // Update only the edited slide to avoid full re-render
+                const updated = await res.json();
+                const iframe = document.createElement('iframe');
+                iframe.scrolling = 'no';
+                const iframeContent = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <style>
+                                body { margin: 0; padding: 20px; font-family: 'Segoe UI', sans-serif; color: #333; transform: scale(0.9); transform-origin: top left; }
+                                img { max-width: 100%; height: auto; }
+                                table { width: 100%; border-collapse: collapse; }
+                                th, td { border: 1px solid #ddd; padding: 8px; }
+                            </style>
+                        </head>
+                        <body>
+                            ${updated.html_content}
+                        </body>
+                        </html>
+                    `;
+                iframe.srcdoc = iframeContent;
+                slideContentDiv.innerHTML = '';
+                slideContentDiv.appendChild(iframe);
+
+                const codeElement = card.querySelector('.code-view code');
+                if (codeElement) {
+                    codeElement.textContent = updated.html_content;
+                }
 
             } catch (error) {
                 console.error('Error submitting edit:', error);
-                alert('An error occurred while editing the slide.');
+                if (error?.name === 'AbortError') {
+                    // User canceled: restore prior state
+                    await window.fetchAndRenderSlides?.();
+                } else {
+                    alert('An error occurred while editing the slide.');
+                }
             } finally {
                 // Ensure editing class is removed even if an error occurs
                 card.classList.remove('editing');
+                if (applyBtn) {
+                    applyBtn.disabled = false;
+                    if (originalApplyText !== null) applyBtn.textContent = originalApplyText;
+                }
+                if (generateBtn) generateBtn.disabled = false;
+                if (exportBtn) exportBtn.disabled = false;
+                this._editing = false;
+                this._editAbort = null;
             }
         },
         async generate() {
