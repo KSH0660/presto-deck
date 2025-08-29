@@ -33,14 +33,18 @@ async def write_slide_content(
     llm = make_llm(model=model)
     renderer_chain = build_renderer_chain(llm)
 
+    # 요청값 우선, 없으면 덱 기획에서 제안한 테마/컬러를 사용
+    theme = req.theme or deck_plan.theme or "Not specified"
+    color_pref = req.color_preference or deck_plan.color_preference or "Not specified"
+
     rendered_slide: SlideHTML = await renderer_chain.ainvoke(
         {
             "candidate_templates": candidate_templates_html,
             "slide_json": slide_spec.model_dump_json(indent=2),
             "topic": deck_plan.topic,
             "audience": deck_plan.audience,
-            "theme": req.theme or "Not specified",
-            "color_preference": req.color_preference or "Not specified",
+            "theme": theme,
+            "color_preference": color_pref,
         }
     )
     return rendered_slide

@@ -55,14 +55,23 @@ class SlideSpec(SlideContent):
 
 
 class InitialDeckPlan(BaseModel):
+    """덱 기획 1차 결과(레이아웃 전). 테마/컬러 가이드를 포함."""
+
     topic: str
     audience: str
+    # 덱 전반의 스타일 가이드 (프롬프트 일관성용)
+    theme: Optional[str] = None
+    color_preference: Optional[str] = None
     slides: List[SlideContent]
 
 
 class DeckPlan(BaseModel):
+    """최종 덱 플랜(레이아웃 후보 포함). 테마/컬러를 유지."""
+
     topic: str
     audience: str
+    theme: Optional[str] = None
+    color_preference: Optional[str] = None
     slides: List[SlideSpec]
 
 
