@@ -22,6 +22,128 @@ document.addEventListener('DOMContentLoaded', () => {
     const API = 'http://127.0.0.1:8000/api/v1';
     const generatedSlides = new Map(); // slide_id -> { title, html }
     let selectedId = null;
+    let pollInterval = null; // For polling slide status
+
+    // Function to fetch and render all slides
+    async function fetchAndRenderSlides() {
+        try {
+            const response = await fetch(`${API}/slides`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const slides = await response.json();
+            slidesArea.innerHTML = ''; // Clear current slides
+            generatedSlides.clear(); // Clear map to resync
+
+            slides.forEach(slide => {
+                generatedSlides.set(slide.id, { title: slide.title, html: slide.html_content, status: slide.status });
+                const slideCard = document.createElement('div');
+                slideCard.id = `slide-${slide.id}`;
+                slideCard.classList.add('slide-card');
+                if (slide.status === 'editing') {
+                    slideCard.classList.add('editing');
+                }
+                slideCard.innerHTML = `
+                    <h2 style="display:flex;justify-content:space-between;align-items:center;margin:0;background:#059669;color:white;padding:8px 12px;font-size:1.1em;overflow:hidden;">
+                        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${slide.title || 'Untitled Slide'}</span>
+                        <span style="font-size:12px;opacity:0.9;padding-left:8px;">#${slide.id}</span>
+                    </h2>
+                    <div class="slide-content"></div>
+                    <div class="card-footer">
+                        <button class="btn-toggle-code">Code</button>
+                        <button class="btn-preview">Preview</button>
+                        <button class="btn-delete danger">Delete</button>
+                    </div>
+                    <div class="code-view" style="display: none; max-height: 200px; overflow: auto; background: #2d2d2d; color: #f1f1f1; padding: 8px; border-top: 1px solid #444;">
+                        <pre style="margin: 0; white-space: pre-wrap; word-break: break-all; font-family: 'Courier New', Courier, monospace; font-size: 13px;"><code></code></pre>
+                    </div>
+                `;
+                slidesArea.appendChild(slideCard);
+
+                const slideContentDiv = slideCard.querySelector('.slide-content');
+                if (slide.html_content) {
+                    const iframe = document.createElement('iframe');
+                    iframe.scrolling = 'no';
+                    const iframeContent = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <style>
+                                body { margin: 0; padding: 20px; font-family: 'Segoe UI', sans-serif; color: #333; transform: scale(0.9); transform-origin: top left; }
+                                img { max-width: 100%; height: auto; }
+                                table { width: 100%; border-collapse: collapse; }
+                                th, td { border: 1px solid #ddd; padding: 8px; }
+                            </style>
+                        </head>
+                        <body>
+                            ${slide.html_content}
+                        </body>
+                        </html>
+                    `;
+                    iframe.srcdoc = iframeContent;
+                    slideContentDiv.innerHTML = '';
+                    slideContentDiv.appendChild(iframe);
+
+                    const codeElement = slideCard.querySelector('.code-view code');
+                    if (codeElement) {
+                        codeElement.textContent = slide.html_content;
+                    }
+                } else if (slide.status === 'editing') {
+                    slideContentDiv.innerHTML = '<div class="spinner"></div><p>Editing...</p>';
+                } else {
+                    slideContentDiv.innerHTML = '<p>No content yet.</p>';
+                }
+
+                // Re-attach event listeners for dynamically created cards
+                slideCard.querySelector('.btn-toggle-code').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const codeView = slideCard.querySelector('.code-view');
+                    const button = e.target;
+                    if (codeView.style.display === 'none') {
+                        codeView.style.display = 'block';
+                        button.textContent = 'Hide';
+                    } else {
+                        codeView.style.display = 'none';
+                        button.textContent = 'Code';
+                    }
+                });
+
+                slideCard.addEventListener('click', (e) => selectCard(slide.id));
+                slideCard.addEventListener('dblclick', () => {
+                    const iframe = slideCard.querySelector('iframe');
+                    if (iframe && iframe.srcdoc) openModalWithSlide(iframe.srcdoc);
+                });
+                slideCard.querySelector('.btn-preview').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const iframe = slideCard.querySelector('iframe');
+                    if (iframe && iframe.srcdoc) openModalWithSlide(iframe.srcdoc);
+                });
+                slideCard.querySelector('.btn-delete').addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    await deleteSlide(slide.id);
+                });
+            });
+        } catch (error) {
+            console.error('Error fetching slides:', error);
+        }
+    }
+
+    // Initial fetch of slides when the page loads
+    fetchAndRenderSlides();
+
+    // Periodically fetch slides if there are any in editing state
+    // This will be started/stopped by submitEdit
+    function startPollingSlides() {
+        if (pollInterval) clearInterval(pollInterval);
+        pollInterval = setInterval(fetchAndRenderSlides, 2000); // Poll every 2 seconds
+    }
+
+    function stopPollingSlides() {
+        if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+        }
+    }
 
     // Centralized event listeners for custom events
     document.addEventListener('started', (event) => {
@@ -30,85 +152,19 @@ document.addEventListener('DOMContentLoaded', () => {
         statusText.textContent = `Generation started (model: ${data.model})...`;
     });
 
-    document.addEventListener('deck_plan', (event) => {
+    document.addEventListener('deck_plan', async (event) => {
         const data = event.detail;
         console.log('Deck Plan event:', data);
         statusText.textContent = `Deck plan ready. Generating ${data.slides.length} slides.`;
-        slidesArea.innerHTML = ''; // Clear any previous placeholders
-
-        data.slides.forEach(slide => {
-            generatedSlides.set(slide.slide_id, { title: slide.title || 'Untitled Slide', html: null });
-            const slideCard = document.createElement('div');
-            slideCard.id = `slide-${slide.slide_id}`;
-            slideCard.classList.add('slide-card');
-            slideCard.innerHTML = `
-                <h2 style="display:flex;justify-content:space-between;align-items:center;margin:0;background:#059669;color:white;padding:8px 12px;font-size:1.1em;">
-                    <span>${slide.title || 'Untitled Slide'}</span>
-                    <span style="font-size:12px;opacity:0.9;">#${slide.slide_id}</span>
-                </h2>
-                <div class="slide-content loading"></div>
-                <div class="card-footer">
-                    <button class="btn-preview">Preview</button>
-                    <button class="btn-delete danger">Delete</button>
-                </div>
-            `;
-            slidesArea.appendChild(slideCard);
-
-            // Click selects card; double-click previews
-            slideCard.addEventListener('click', (e) => selectCard(slide.slide_id));
-            slideCard.addEventListener('dblclick', () => {
-                const iframe = slideCard.querySelector('iframe');
-                if (iframe && iframe.srcdoc) openModalWithSlide(iframe.srcdoc);
-            });
-            // Footer buttons
-            slideCard.querySelector('.btn-preview').addEventListener('click', (e) => {
-                e.stopPropagation();
-                const iframe = slideCard.querySelector('iframe');
-                if (iframe && iframe.srcdoc) openModalWithSlide(iframe.srcdoc);
-            });
-            slideCard.querySelector('.btn-delete').addEventListener('click', async (e) => {
-                e.stopPropagation();
-                await deleteSlide(slide.slide_id);
-            });
-        });
+        // Fetch and render slides based on the new deck plan
+        await fetchAndRenderSlides();
     });
 
-    document.addEventListener('slide_rendered', (event) => {
+    document.addEventListener('slide_rendered', async (event) => {
         const data = event.detail;
         console.log('Slide Rendered event:', data);
-        const slideCard = document.getElementById(`slide-${data.slide_id}`);
-        if (slideCard) {
-            const slideContentDiv = slideCard.querySelector('.slide-content');
-            slideContentDiv.classList.remove('loading');
-
-            const iframe = document.createElement('iframe');
-            iframe.scrolling = 'no'; // Disable scrolling on the preview iframe
-
-            // It's crucial to have a proper HTML structure for srcdoc
-            const iframeContent = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        /* Basic styles for consistent preview */
-                        body { margin: 0; padding: 20px; font-family: 'Segoe UI', sans-serif; color: #333; transform: scale(0.9); transform-origin: top left; }
-                        img { max-width: 100%; height: auto; }
-                        table { width: 100%; border-collapse: collapse; }
-                        th, td { border: 1px solid #ddd; padding: 8px; }
-                    </style>
-                </head>
-                <body>
-                    ${data.html}
-                </body>
-                </html>
-            `;
-            iframe.srcdoc = iframeContent;
-            slideContentDiv.innerHTML = '';
-            slideContentDiv.appendChild(iframe);
-        }
-        // Cache HTML for save/select workflow
-        const meta = generatedSlides.get(data.slide_id);
-        if (meta) meta.html = data.html;
+        // Re-fetch and render all slides to update the specific slide
+        await fetchAndRenderSlides();
     });
 
     document.addEventListener('progress', (event) => {
@@ -216,30 +272,52 @@ function prestoApp() {
             });
         },
         async submitEdit() {
+            console.log("submitEdit called");
             const id = Number(document.getElementById('edit-slide-id').value);
             const prompt = document.getElementById('edit-slide-prompt').value.trim();
-            if (!id || !prompt) { alert('Select a slide and enter an instruction.'); return; }
-            // Get current HTML shown in the card (client hint)
+            if (!id || !prompt) {
+                alert('Select a slide and enter an instruction.');
+                return;
+            }
             const card = document.getElementById(`slide-${id}`);
-            const iframe = card?.querySelector('iframe');
-            const hintHtml = iframe?.srcdoc ? extractBodyFromSrcdoc(iframe.srcdoc) : '';
-            const payload = { edit_prompt: prompt, client_html_hint: hintHtml };
-            const res = await fetch(`${API}/slides/${id}/edit`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-            });
-            if (!res.ok) { const err = await res.text(); alert(`Edit failed: ${err}`); return; }
-            const combined = await res.text();
-            const updated = extractSlideFromCombined(combined, id);
-            if (updated) {
-                // Replace card content
-                const iframeContent = `<!DOCTYPE html><html><head><style>body{margin:0;padding:20px;font-family:'Segoe UI',sans-serif;color:#333;transform:scale(0.9);transform-origin:top left;}img{max-width:100%;height:auto;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;}</style></head><body>${updated}</body></html>`;
-                const targetIframe = card.querySelector('iframe') || document.createElement('iframe');
-                targetIframe.srcdoc = iframeContent;
-                const contentDiv = card.querySelector('.slide-content');
-                contentDiv.innerHTML = '';
-                contentDiv.appendChild(targetIframe);
-            } else {
-                alert('Could not parse edited slide.');
+            if (!card) {
+                alert('Could not find the selected slide card.');
+                return;
+            }
+
+            // Visual feedback: Add editing class and spinner
+            card.classList.add('editing');
+            const slideContentDiv = card.querySelector('.slide-content');
+            slideContentDiv.innerHTML = '<div class="spinner"></div><p>Editing...</p>';
+
+            const payload = { edit_prompt: prompt };
+
+            // Start polling for status updates
+            startPollingSlides();
+
+            try {
+                const res = await fetch(`${API}/slides/${id}/edit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const err = await res.text();
+                    alert(`Edit failed: ${err}`);
+                    return;
+                }
+
+                // After successful edit, stop polling and re-render all slides
+                stopPollingSlides();
+                await fetchAndRenderSlides();
+
+            } catch (error) {
+                console.error('Error submitting edit:', error);
+                alert('An error occurred while editing the slide.');
+            } finally {
+                // Ensure editing class is removed even if an error occurs
+                card.classList.remove('editing');
             }
         },
         async generate() {
@@ -297,22 +375,4 @@ function prestoApp() {
             }
         }
     };
-}
-
-function extractSlideFromCombined(htmlText, slideId) {
-    try {
-        const wrapper = document.createElement('div');
-        wrapper.innerHTML = htmlText;
-        const node = wrapper.querySelector(`#slide-${slideId} > div`);
-        return node ? node.innerHTML : null;
-    } catch { return null; }
-}
-
-function extractBodyFromSrcdoc(srcdoc) {
-    try {
-        const start = srcdoc.indexOf('<body>');
-        const end = srcdoc.indexOf('</body>');
-        if (start !== -1 && end !== -1) return srcdoc.slice(start + 6, end);
-        return srcdoc;
-    } catch { return ''; }
 }

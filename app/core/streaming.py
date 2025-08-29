@@ -4,6 +4,7 @@ import json
 import logging  # Added
 from typing import AsyncGenerator, Dict
 
+from app.core import state
 from app.core import layout_selector, planner, slide_worker
 from app.core.config import settings
 from app.core.template_manager import get_template_html_catalog
@@ -72,7 +73,9 @@ async def stream_presentation(
         yield await sse_event("deck_plan", deck_plan.model_dump())
 
         # 5. Set up concurrent slide processing
-        template_catalog = get_template_html_catalog()
+        template_catalog = (
+            get_template_html_catalog()
+        )  # TODO: 매번가져오지 말고 캐시하는게?
         semaphore = asyncio.Semaphore(max_concurrency)
         queue: asyncio.Queue = asyncio.Queue()
 
@@ -144,6 +147,16 @@ async def stream_presentation(
                                 "html": res.html,
                             },
                         )
+                        state.slides_db.append(
+                            {
+                                "id": res.slide_id,
+                                "title": s.title,
+                                "html_content": res.html,
+                                "version": 1,
+                                "status": "complete",
+                            }
+                        )
+                        state.next_slide_id += 1
                         next_index_to_yield += 1
                 else:
                     # Yield immediately if order doesn't matter
@@ -158,6 +171,16 @@ async def stream_presentation(
                             "html": payload.html,
                         },
                     )
+                    state.slides_db.append(
+                        {
+                            "id": payload.slide_id,
+                            "title": spec.title,
+                            "html_content": payload.html,
+                            "version": 1,
+                            "status": "complete",
+                        }
+                    )
+                    state.next_slide_id += 1
 
             completed_count += 1
             logger.debug(

@@ -7,7 +7,7 @@ PLANNER_SYSTEM = (
     "Include realistic numbers where relevant (can be estimates) and clear, concise slide bullets."
 )
 PLANNER_PROMPT = PromptTemplate.from_template(
-    "{system}\n"
+    f"{PLANNER_SYSTEM}\n"
     "User request:\n{user_request}\n\n"
     "Rules:\n"
     "- 8~12 slides typical (adjust if user implies different).\n"
@@ -24,7 +24,7 @@ SELECTOR_SYSTEM = (
     "Your output must be a JSON object with a 'candidates' field containing a list of the chosen template names."
 )
 SELECTOR_PROMPT = PromptTemplate.from_template(
-    "{system}\n\n"
+    f"{SELECTOR_SYSTEM}\n\n"
     "## Overall Presentation Context\n"
     "- User's Request: {user_request}\n"
     "- Presentation Topic: {deck_topic}\n"
@@ -49,7 +49,7 @@ RENDER_SYSTEM = (
     "Replace any placeholders/comments from the chosen template with real content. No Markdown."
 )
 RENDER_PROMPT = PromptTemplate.from_template(
-    "{system}\n"
+    f"{RENDER_SYSTEM}\n"
     "Deck context (for tone/consistency): topic='{topic}', audience='{audience}', theme='{theme}', color_preference='{color_preference}'.\n\n"
     "Candidate Templates (ONLY these):\n{candidate_templates}\n\n"
     "Slide JSON:\n{slide_json}\n\n"
@@ -69,11 +69,33 @@ TEMPLATE_SUMMARY_SYSTEM = (
     "one-sentence summary of its structure and ideal use case."
 )
 TEMPLATE_SUMMARY_PROMPT = PromptTemplate.from_template(
-    "{system}\n\n"
+    f"{TEMPLATE_SUMMARY_SYSTEM}\n\n"
     "## HTML Content\n"
     "```html\n{html_content}\n```\n\n"
     "## Your Task\n"
     "Analyze the HTML content above. Describe its layout and the best type of content for it in a single, clear sentence. "
     'For example: "A standard title and content slide with a two-column layout for bullet points." '
-    'or "A full-width cover image with a centered title, ideal for section breaks.'
+    'or "A full-width cover image with a centered title, ideal for section breaks."'
+)
+
+
+EDIT_SYSTEM = (
+    "You are an expert HTML editor. "
+    "Your task is to carefully edit the provided HTML content based only on the user's request. "
+    "Do not change, remove, or reformat any part of the HTML that is not explicitly related to the request. "
+    "Preserve the overall structure, style, and content as much as possible. "
+    "You must only return the raw, edited HTML content. "
+    "Do not add any explanations, markdown, or any other text outside of the HTML itself."
+)
+
+EDIT_PROMPT_TEMPLATE = PromptTemplate.from_template(
+    f"{EDIT_SYSTEM}\n\n"
+    "## Original HTML Content\n"
+    "```html\n{original_html}\n```\n\n"
+    "## User's Edit Request\n"
+    "{edit_prompt}\n\n"
+    "## Your Task\n"
+    "Update the original HTML strictly according to the user's request. "
+    "Do not introduce extra modifications or unnecessary changes. "
+    "Return the full updated HTML code only."
 )

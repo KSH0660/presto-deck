@@ -7,7 +7,7 @@ from typing import Dict, Optional
 
 from app.core.config import settings
 from app.core.llm import make_llm
-from app.core.prompts import TEMPLATE_SUMMARY_SYSTEM, TEMPLATE_SUMMARY_PROMPT
+from app.core.prompts import TEMPLATE_SUMMARY_PROMPT
 from app.models.schema import TemplateSummary
 
 # 전역 변수로 템플릿 요약 및 원본 HTML 캐시
@@ -22,9 +22,7 @@ async def _generate_summary_for_template(
     llm = make_llm(model=model)
     chain = TEMPLATE_SUMMARY_PROMPT | llm.with_structured_output(TemplateSummary)
     try:
-        result = await chain.ainvoke(
-            {"system": TEMPLATE_SUMMARY_SYSTEM, "html_content": html_content}
-        )
+        result = await chain.ainvoke({"html_content": html_content})
         return result.summary
     except Exception as e:
         print(f"Error generating template summary: {e}")

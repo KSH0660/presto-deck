@@ -12,15 +12,15 @@ pytestmark = pytest.mark.asyncio
 @pytest.fixture(autouse=True)
 def run_around_tests():
     # Code that will run before each test
-    from app.api.v1 import presentation
+    from app.core import state
 
-    presentation.slides_db.clear()
-    presentation.next_slide_id = 1
+    state.slides_db.clear()
+    state.next_slide_id = 1
     # A test function will be run at this point
     yield
     # Code that will run after each test
-    presentation.slides_db.clear()
-    presentation.next_slide_id = 1
+    state.slides_db.clear()
+    state.next_slide_id = 1
 
 
 @pytest.fixture
@@ -36,19 +36,27 @@ def mock_deck_plan():
     )
 
 
-async def test_edit_slide(client):
+async def test_edit_slide(client, monkeypatch):
     """Test editing an existing slide."""
-    # First, create a slide
-    await client.post(
-        "/api/v1/slides/new",
-        data={"title": "Original Title", "html_content": "<p>Original</p>"},
-    )
+    # Setup: Directly manipulate the in-memory DB for the test
+    initial_slide = {
+        "id": 1,
+        "title": "Original Title",
+        "html_content": "<p>Original</p>",
+        "version": 1,
+    }
 
-    # Mock the LLM chain
+    # Import the state module to access slides_db
+    from app.core import state
+
+    monkeypatch.setattr(state, "slides_db", [initial_slide])
+    monkeypatch.setattr(state, "next_slide_id", 2)
+
+    # Mock the core edit function for a more robust unit test
     with patch(
-        "langchain_openai.ChatOpenAI.ainvoke", new_callable=AsyncMock
-    ) as mock_ainvoke:
-        mock_ainvoke.return_value = "<p>New AI-generated content</p>"
+        "app.api.v1.presentation.edit_slide_content", new_callable=AsyncMock
+    ) as mock_edit_content:
+        mock_edit_content.return_value = "<p>New AI-generated content</p>"
 
         # Now, edit the slide
         response = await client.post(
@@ -57,11 +65,48 @@ async def test_edit_slide(client):
         )
 
     assert response.status_code == 200
-    assert "text/html" in response.headers["content-type"]
-    assert "<p>New AI-generated content</p>" in response.text
+    response_json = response.json()
+    assert response_json["id"] == 1
+    assert response_json["html_content"] == "<p>New AI-generated content</p>"
+    assert response_json["version"] == 2  # Incremented from 1
 
-    # Verify the mock was called
-    mock_ainvoke.assert_called_once()
+    # Verify the mock was called correctly
+    mock_edit_content.assert_called_once_with(
+        original_html="<p>Original</p>", edit_prompt="Change the content"
+    )
+
+
+async def test_add_slide(client):
+    """Test adding a new slide."""
+    # Mock the core add function
+    with patch(
+        "app.api.v1.presentation.add_slide_content", new_callable=AsyncMock
+    ) as mock_add_content:
+        mock_add_content.return_value = {
+            "title": "Added Slide",
+            "html_content": "<h1>Added Content</h1>",
+        }
+
+        response = await client.post(
+            "/api/v1/slides/add",
+            json={"add_prompt": "A slide about testing"},
+        )
+
+    assert response.status_code == 201
+    response_json = response.json()
+    assert response_json["id"] == 1
+    assert response_json["title"] == "Added Slide"
+    assert response_json["html_content"] == "<h1>Added Content</h1>"
+    assert response_json["version"] == 1
+
+    # Check if it was actually added to the db
+    from app.core import state
+
+    assert len(state.slides_db) == 1
+    assert state.slides_db[0]["id"] == 1
+    assert state.slides_db[0]["title"] == "Added Slide"
+
+    mock_add_content.assert_called_once_with("A slide about testing")
 
 
 async def test_get_progress_stream(client):
