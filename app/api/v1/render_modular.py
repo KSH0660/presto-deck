@@ -11,6 +11,7 @@ from app.models.types import QualityTier
 from app.core.infra import state
 from app.core.pipeline.emitter import EventEmitter, sse_event
 from app.core.infra.metrics import SLIDES_RENDERED
+from app.core.infra.eventbus import ui_event_bus
 import asyncio
 import time
 
@@ -92,6 +93,7 @@ async def render_slides_stream(req: RenderRequest) -> StreamingResponse:
                 "total": total_slides,
             },
         )
+        await ui_event_bus.publish("started", {"total": total_slides})
 
         semaphore = asyncio.Semaphore(
             min(
@@ -160,6 +162,9 @@ async def render_slides_stream(req: RenderRequest) -> StreamingResponse:
                                 "html": res.html,
                             },
                         )
+                        await ui_event_bus.publish(
+                            "slide_rendered", {"slide_id": res.slide_id}
+                        )
                         SLIDES_RENDERED.inc()
                         state.slides_db.append(
                             {
@@ -181,6 +186,9 @@ async def render_slides_stream(req: RenderRequest) -> StreamingResponse:
                             "template_name": payload.template_name,
                             "html": payload.html,
                         },
+                    )
+                    await ui_event_bus.publish(
+                        "slide_rendered", {"slide_id": payload.slide_id}
                     )
                     SLIDES_RENDERED.inc()
                     state.slides_db.append(
@@ -214,11 +222,9 @@ async def render_slides_stream(req: RenderRequest) -> StreamingResponse:
             pass
 
         duration_ms = int((time.time() - start) * 1000)
-        yield (
-            await sse_event(
-                "completed", {"total": total_slides, "duration_ms": duration_ms}
-            )
-        ).encode("utf-8")
+        _payload = {"total": total_slides, "duration_ms": duration_ms}
+        await ui_event_bus.publish("completed", _payload)
+        yield (await sse_event("completed", _payload)).encode("utf-8")
 
     return StreamingResponse(
         _event_stream(),

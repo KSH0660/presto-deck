@@ -24,7 +24,7 @@
         </div>
       </form>
     </details>
-    <button class="btn-delete danger" hx-delete="/api/v1/slides/{{ slide.id }}/delete" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML:remove">Delete</button>
+    <button class="btn-delete danger" hx-delete="/api/v1/ui/slides/{{ slide.id }}/delete" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML:remove">Delete</button>
   </div>
   <div class="code-view" style="display:none;max-height:200px;overflow:auto;background:#2d2d2d;color:#f1f1f1;padding:8px;border-top:1px solid #444;">
     <pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:'Courier New',Courier,monospace;font-size:13px;"><code>{{ slide.html_content }}</code></pre>

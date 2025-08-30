@@ -1,4 +1,4 @@
-<form id="deck-plan-form" hx-post="/api/v1/ui/render_from_form" hx-target="#slides-area" hx-swap="innerHTML">
+<form id="deck-plan-form">
   <div class="grid md:grid-cols-2 gap-3 mb-3">
     <input class="w-full p-2 border rounded" name="topic" placeholder="Topic" value="{{ deck.topic }}"/>
     <input class="w-full p-2 border rounded" name="audience" placeholder="Audience" value="{{ deck.audience }}"/>
@@ -30,6 +30,6 @@
     </div>
   </div>
   <div class="flex gap-2 justify-end mt-3">
-    <button type="submit" class="bg-blue-600 text-white px-3 py-2 rounded">Render Deck</button>
+    <button type="button" class="bg-blue-600 text-white px-3 py-2 rounded" onclick="window.PrestoStream?.renderFromEditor()">Render Deck (Stream)</button>
   </div>
 </form>

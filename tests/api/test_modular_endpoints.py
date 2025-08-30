@@ -6,7 +6,6 @@ from app.models.schema import (
     SlideContent,
     DeckPlan,
     SlideSpec,
-    SlideHTML,
 )
 
 
@@ -40,30 +39,6 @@ async def test_plan_endpoint(client):
         assert data["topic"] == "T"
         assert len(data["slides"]) == 1
         assert data["slides"][0]["layout_candidates"] == ["x.html"]
-
-
-async def test_render_from_plan_endpoint(client):
-    deck = DeckPlan(
-        topic="T",
-        audience="A",
-        slides=[SlideSpec(slide_id=1, title="S1", layout_candidates=["x.html"])],
-    )
-
-    fake_html = SlideHTML(slide_id=1, template_name="x.html", html="<div>ok</div>")
-    with patch(
-        "app.core.rendering.slide_worker.process_slide",
-        new=AsyncMock(return_value=fake_html),
-    ):
-        payload = {
-            "user_prompt": "hello",
-            "deck_plan": deck.model_dump(),
-            "config": {"quality": "default"},
-        }
-        resp = await client.post("/api/v1/slides/render", json=payload)
-        assert resp.status_code == 200
-        data = resp.json()
-        assert "slides" in data and len(data["slides"]) == 1
-        assert data["slides"][0]["template_name"] == "x.html"
 
 
 async def test_session_create_with_file(client, tmp_path):

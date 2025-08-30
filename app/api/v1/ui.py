@@ -5,11 +5,11 @@ from pathlib import Path
 from app.core.infra import state
 from app.core.planning import planner
 from app.core.selection import layout_selector
-from app.core.rendering.slide_worker import process_slide
 from app.models.schema import DeckPlan, SlideSpec
 from app.core.rendering.edit import edit_slide_content
 from app.core.infra.config import settings
-
+from app.core.infra.eventbus import ui_event_bus
+from app.core.pipeline.emitter import sse_event
 
 router = APIRouter()
 
@@ -117,46 +117,6 @@ def _parse_deck_from_form(form: dict) -> DeckPlan:
     )
 
 
-@router.post("/ui/render_from_form", response_class=Response)
-async def render_from_form(request: Request) -> Response:
-    """Parse DeckPlan from form, render slides, return slides partial HTML."""
-    form = {k: v for k, v in (await request.form()).items()}
-    deck = _parse_deck_from_form(form)
-
-    # Clear current slides and render
-    state.slides_db.clear()
-    from app.core.templates.template_manager import get_template_html_catalog
-    from app.models.schema import GenerateRequest
-
-    catalog = get_template_html_catalog()
-    req = GenerateRequest(
-        user_prompt=form.get("user_prompt", ""),
-        theme=deck.theme,
-        color_preference=deck.color_preference,
-    )
-    for spec in deck.slides:
-        html = await process_slide(
-            slide_spec=spec,
-            deck_plan=deck,
-            req=req,
-            template_catalog=catalog,
-            model=settings.DEFAULT_MODEL,
-        )
-        state.slides_db.append(
-            {
-                "id": spec.slide_id,
-                "title": spec.title,
-                "html_content": html.html,
-                "version": 1,
-                "status": "complete",
-            }
-        )
-    # Return updated slides area
-    tmpl = env.get_template("slides_area.html")
-    html = tmpl.render(slides=state.slides_db)
-    return Response(html, media_type="text/html")
-
-
 @router.post("/ui/slides/{slide_id}/edit", response_class=Response)
 async def edit_slide_html(slide_id: int, edit_prompt: str = Form(...)) -> Response:
     slide = next((s for s in state.slides_db if s.get("id") == slide_id), None)
@@ -174,3 +134,48 @@ async def edit_slide_html(slide_id: int, edit_prompt: str = Form(...)) -> Respon
     tmpl = env.get_template("slide_card.html")
     html = tmpl.render(slide=slide)
     return Response(html, media_type="text/html")
+
+
+@router.delete("/ui/slides/{slide_id}/delete", response_class=Response)
+async def delete_slide_ui(slide_id: int) -> Response:
+    before = len(state.slides_db)
+    state.slides_db = [s for s in state.slides_db if s.get("id") != slide_id]
+    status = 200 if len(state.slides_db) < before else 404
+    return Response("", media_type="text/html", status_code=status)
+
+
+@router.get("/ui/events")
+async def ui_events():
+    import time
+    import asyncio as _asyncio
+    from fastapi.responses import StreamingResponse
+
+    async def gen():
+        q = ui_event_bus.subscribe()
+        try:
+            yield (await sse_event("hello", {"ts": int(time.time())})).encode("utf-8")
+            last_hb = time.time()
+            while True:
+                try:
+                    msg = await _asyncio.wait_for(q.get(), timeout=15)
+                    yield msg.encode("utf-8")
+                    last_hb = time.time()
+                except _asyncio.TimeoutError:
+                    now = time.time()
+                    if now - last_hb >= 15:
+                        yield (await sse_event("heartbeat", {"ts": int(now)})).encode(
+                            "utf-8"
+                        )
+                        last_hb = now
+        finally:
+            ui_event_bus.unsubscribe(q)
+
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

@@ -84,8 +84,10 @@
                 </div>
             </div>
             <div id="slides-area"
+                 hx-ext="sse"
+                 hx-sse="connect:/api/v1/ui/events"
                  hx-get="/api/v1/ui/slides"
-                 hx-trigger="load, every 2s"
+                 hx-trigger="load, sse:slide_rendered, sse:completed"
                  hx-swap="innerHTML"></div>
         </main>
 
@@ -107,6 +109,7 @@
     <!-- Refactored modular scripts (load in order) -->
     <script src="js/config.js"></script>
     <script src="js/modal.js"></script>
+    <script src="js/stream.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
