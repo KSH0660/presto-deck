@@ -17,14 +17,22 @@
     <button class="btn-preview">Preview</button>
     <details>
       <summary class="cursor-pointer">AI Edit</summary>
+      {% if deck_id is defined %}
+      <form hx-post="/api/v1/ui/decks/{{ deck_id }}/slides/{{ slide.id }}/edit" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML">
+      {% else %}
       <form hx-post="/api/v1/ui/slides/{{ slide.id }}/edit" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML">
+      {% endif %}
         <textarea class="w-full p-2 border rounded" name="edit_prompt" placeholder="Describe your change"></textarea>
         <div class="mt-1 flex justify-end">
           <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Apply</button>
         </div>
       </form>
     </details>
+    {% if deck_id is defined %}
+    <button class="btn-delete danger" hx-delete="/api/v1/ui/decks/{{ deck_id }}/slides/{{ slide.id }}/delete" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML:remove">Delete</button>
+    {% else %}
     <button class="btn-delete danger" hx-delete="/api/v1/ui/slides/{{ slide.id }}/delete" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML:remove">Delete</button>
+    {% endif %}
   </div>
   <div class="code-view" style="display:none;max-height:200px;overflow:auto;background:#2d2d2d;color:#f1f1f1;padding:8px;border-top:1px solid #444;">
     <pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:'Courier New',Courier,monospace;font-size:13px;"><code>{{ slide.html_content }}</code></pre>

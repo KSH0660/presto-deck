@@ -20,33 +20,62 @@
             <p class="text-slate-500">Enter a topic and let the AI create a presentation for you in real-time.</p>
         </header>
 
-        <!-- htmx-first: Step 1 Plan form posts and receives DeckPlan editor partial -->
+        <!-- Decks: List & Create -->
         <section class="border rounded p-4">
-            <h2 class="text-xl font-semibold mb-3">Step 1. Plan Deck</h2>
-            <form hx-post="/api/v1/ui/plan_form" hx-target="#deck-plan-editor" hx-swap="innerHTML" class="grid md:grid-cols-2 gap-3">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-xl font-semibold">My Decks</h2>
+                <div class="flex items-center gap-2">
+                    <button id="refresh-decks" class="bg-slate-200 text-slate-800 px-3 py-2 rounded border">Refresh</button>
+                </div>
+            </div>
+            <div id="deck-list" class="grid md:grid-cols-3 gap-3"></div>
+        </section>
+
+        <section class="border rounded p-4 mt-4">
+            <h2 class="text-xl font-semibold mb-3">Create New Deck</h2>
+            <form id="new-deck-form" class="grid md:grid-cols-2 gap-3">
                 <div class="md:col-span-2">
                     <label class="text-sm text-slate-600">Your request</label>
-                    <textarea name="user_prompt" class="w-full p-3 border rounded" placeholder="Describe your deck goal and constraints" required>Create a compelling presentation about the benefits of adopting renewable energy sources for a general audience. Focus on environmental impact, economic advantages, and long-term sustainability. Include key statistics and examples of successful implementations worldwide. The presentation should encourage individuals and communities to consider transitioning to green energy. Aim for a clear, engaging, and persuasive tone.</textarea>
+                    <textarea id="new-user-prompt" class="w-full p-3 border rounded" placeholder="Describe your deck goal and constraints" required>Create a compelling presentation about the benefits of adopting renewable energy sources for a general audience.</textarea>
                 </div>
                 <div>
                     <label class="text-sm text-slate-600">Theme</label>
-                    <input name="theme" class="w-full p-2 border rounded" placeholder="Minimal / Corporate / Playful" />
+                    <input id="new-theme" class="w-full p-2 border rounded" placeholder="Minimal / Corporate / Playful" />
                 </div>
                 <div>
                     <label class="text-sm text-slate-600">Color Preference</label>
-                    <input name="color_preference" class="w-full p-2 border rounded" placeholder="Blue / Green / ..." />
+                    <input id="new-color" class="w-full p-2 border rounded" placeholder="Blue / Green / ..." />
                 </div>
                 <div class="md:col-span-2 flex gap-2 justify-end">
-                    <button type="submit" class="bg-emerald-600 text-white px-3 py-2 rounded">Create Deck Plan</button>
+                    <button type="submit" class="bg-emerald-600 text-white px-3 py-2 rounded">Create Deck</button>
                 </div>
             </form>
-            <p class="text-xs text-slate-500 mt-2">The generated plan appears below. Edit it and render.</p>
+            <p class="text-xs text-slate-500 mt-2">The deck will appear in the list. Click to open and edit.</p>
         </section>
 
-        <!-- Step 2: DeckPlan editor (htmx partial target) -->
-        <section class="border rounded p-4">
-            <h2 class="text-xl font-semibold mb-3">Step 2. Review & Edit Deck Plan</h2>
-            <div id="deck-plan-editor"></div>
+        <!-- Deck Plan Editor -->
+        <section class="border rounded p-4 mt-4">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-xl font-semibold">Deck Plan Editor</h2>
+                <div class="text-sm text-slate-600" id="current-deck-label">No deck selected</div>
+            </div>
+            <div id="plan-editor" class="hidden">
+                <div class="grid md:grid-cols-2 gap-3 mb-3">
+                    <input id="plan-topic" class="w-full p-2 border rounded" placeholder="Topic" />
+                    <input id="plan-audience" class="w-full p-2 border rounded" placeholder="Audience" />
+                    <input id="plan-theme" class="w-full p-2 border rounded" placeholder="Theme" />
+                    <input id="plan-color" class="w-full p-2 border rounded" placeholder="Color Preference" />
+                </div>
+                <div>
+                    <h3 class="font-semibold mb-2">Slides</h3>
+                    <div id="plan-editor-slides" class="grid md:grid-cols-2 gap-3"></div>
+                </div>
+                <div class="flex gap-2 justify-end mt-3">
+                    <button id="plan-save" class="bg-slate-700 text-white px-3 py-2 rounded">Save Plan</button>
+                    <button id="plan-render" class="bg-blue-600 text-white px-3 py-2 rounded">Render Deck (Stream)</button>
+                </div>
+            </div>
+            <p id="deck-status" class="text-xs text-slate-500 mt-2"></p>
         </section>
 
         <!-- Legacy SSE quick-generate removed in htmx-first UI -->
@@ -111,6 +140,7 @@
     <!-- Refactored modular scripts (load in order) -->
     <script src="js/config.js"></script>
     <script src="js/modal.js"></script>
+    <script src="js/decks.js"></script>
     <script src="js/stream.js"></script>
     <script src="app.js"></script>
 </body>

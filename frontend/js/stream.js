@@ -43,6 +43,16 @@
     } catch {}
   }
 
+  async function refreshSlidesDeck(deckId) {
+    try {
+      const res = await fetch(`/api/v1/ui/decks/${deckId}/slides`)
+      if (!res.ok) return
+      const html = await res.text()
+      const area = $('slides-area')
+      if (area) area.innerHTML = html
+    } catch {}
+  }
+
   async function renderFromEditor() {
     const deck_plan = collectDeckPlan()
     const payload = { user_prompt: '', deck_plan, config: { quality: 'default', ordered: false } }
@@ -88,5 +98,47 @@
     }
   }
 
-  window.PrestoStream = { renderFromEditor }
+  async function renderDeck(deckId) {
+    const status = $('status-text')
+    const btn = document.getElementById('plan-render')
+    if (btn) btn.disabled = true
+    try {
+      const payload = { user_prompt: '', theme: null, color_preference: null, config: { quality: 'default', ordered: false } }
+      const res = await fetch(`/api/v1/decks/${deckId}/render/stream`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      if (!res.ok || !res.body) throw new Error('stream failed')
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      if (status) status.textContent = 'Rendering deck (stream)...'
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        let idx
+        while ((idx = buffer.indexOf('\n\n')) !== -1) {
+          const chunk = buffer.slice(0, idx)
+          buffer = buffer.slice(idx + 2)
+          let event = 'message', data='{}'
+          chunk.split('\n').forEach(line=>{
+            if (line.startsWith('event:')) event = line.slice(6).trim()
+            else if (line.startsWith('data:')) data = line.slice(5).trim()
+          })
+          if (event === 'slide_rendered') {
+            await refreshSlidesDeck(deckId)
+            try { document.dispatchEvent(new CustomEvent('slide_rendered', { detail: {} })) } catch {}
+          } else if (event === 'completed') {
+            await refreshSlidesDeck(deckId)
+            try { const d = JSON.parse(data); if (status) status.textContent = `Completed in ${Math.round((d.duration_ms||0)/1000)}s` } catch {}
+            try { document.dispatchEvent(new CustomEvent('completed', { detail: {} })) } catch {}
+          }
+        }
+      }
+    } catch (e) {
+      if (status) status.textContent = 'Stream error'
+    } finally {
+      if (btn) btn.disabled = false
+    }
+  }
+
+  window.PrestoStream = { renderFromEditor, renderDeck, refreshSlidesDeck }
 })()

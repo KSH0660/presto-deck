@@ -12,6 +12,7 @@ from app.api.v1 import plan as plan_api
 from app.api.v1 import render_modular as render_api
 from app.api.v1 import sessions as sessions_api
 from app.api.v1 import ui as ui_api
+from app.api.v1 import decks as decks_api
 from app.core.infra.config import settings
 from app.core.infra.metrics import metrics_router
 from app.core.templates.template_manager import (
@@ -19,6 +20,8 @@ from app.core.templates.template_manager import (
     get_template_summaries,
 )
 from app.core.infra.logging import configure_logging
+import logging
+from app.core.storage.deck_store import get_deck_store
 
 configure_logging()
 
@@ -33,6 +36,14 @@ async def lifespan(app: FastAPI):
     print("애플리케이션 시작: 템플릿 카탈로그 초기화를 시작합니다...")
     asyncio.create_task(initialize_template_data())
     print("템플릿 카탈로그 초기화 작업이 예약되었습니다.")
+    # Eagerly initialize deck store so storage backend is logged at startup
+    try:
+        store = get_deck_store()
+        logging.getLogger(__name__).info(
+            "Storage initialized: %s", store.__class__.__name__
+        )
+    except Exception as e:
+        logging.getLogger(__name__).warning("Failed to initialize deck store: %s", e)
     yield
     # Shutdown
     print("애플리케이션이 종료됩니다.")
@@ -71,6 +82,7 @@ app.include_router(plan_api.router, prefix="/api/v1")
 app.include_router(render_api.router, prefix="/api/v1")
 app.include_router(sessions_api.router, prefix="/api/v1")
 app.include_router(ui_api.router, prefix="/api/v1")
+app.include_router(decks_api.router, prefix="/api/v1")
 
 
 @app.get("/healthz", response_model=HealthResponse)

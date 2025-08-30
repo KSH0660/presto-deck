@@ -9,6 +9,7 @@ from app.models.schema import DeckPlan, SlideSpec
 from app.core.rendering.edit import edit_slide_content
 from app.core.infra.config import settings
 from app.core.infra.eventbus import ui_event_bus
+from app.core.storage.deck_store import get_deck_store
 from app.core.pipeline.emitter import sse_event
 
 router = APIRouter()
@@ -27,6 +28,16 @@ async def slides_partial() -> Response:
     return Response(content=html, media_type="text/html")
 
 
+@router.get("/ui/decks/{deck_id}/slides", response_class=Response)
+async def deck_slides_partial(deck_id: str) -> Response:
+    """Return slides HTML snippet for a specific deck (htmx-friendly)."""
+    tmpl = env.get_template("slides_area.html")
+    store = get_deck_store()
+    slides = await store.list_slides(deck_id)
+    html = tmpl.render(slides=slides, deck_id=deck_id)
+    return Response(content=html, media_type="text/html")
+
+
 @router.get("/ui/slides/{slide_id}", response_class=Response)
 async def slide_card_partial(slide_id: int) -> Response:
     slide = next((s for s in state.slides_db if s.get("id") == slide_id), None)
@@ -35,6 +46,47 @@ async def slide_card_partial(slide_id: int) -> Response:
     tmpl = env.get_template("slide_card.html")
     html = tmpl.render(slide=slide)
     return Response(content=html, media_type="text/html")
+
+
+@router.get("/ui/decks/{deck_id}/slides/{slide_id}", response_class=Response)
+async def deck_slide_card_partial(deck_id: str, slide_id: int) -> Response:
+    store = get_deck_store()
+    slide = await store.get_slide(deck_id, slide_id)
+    if not slide:
+        return Response("", media_type="text/html", status_code=404)
+    tmpl = env.get_template("slide_card.html")
+    html = tmpl.render(slide=slide, deck_id=deck_id)
+    return Response(content=html, media_type="text/html")
+
+
+@router.post("/ui/decks/{deck_id}/slides/{slide_id}/edit", response_class=Response)
+async def edit_deck_slide_html(
+    deck_id: str, slide_id: int, edit_prompt: str = Form(...)
+) -> Response:
+    store = get_deck_store()
+    slide = await store.get_slide(deck_id, slide_id)
+    if not slide:
+        return Response("", media_type="text/html", status_code=404)
+    slide["status"] = "editing"
+    try:
+        new_html = await edit_slide_content(
+            slide.get("html_content", ""), edit_prompt=edit_prompt
+        )
+        slide["html_content"] = new_html
+        slide["version"] = int(slide.get("version", 0)) + 1
+    finally:
+        slide["status"] = "complete"
+    await store.add_or_update_slide(deck_id, slide)
+    tmpl = env.get_template("slide_card.html")
+    html = tmpl.render(slide=slide, deck_id=deck_id)
+    return Response(content=html, media_type="text/html")
+
+
+@router.delete("/ui/decks/{deck_id}/slides/{slide_id}/delete", response_class=Response)
+async def delete_deck_slide_ui(deck_id: str, slide_id: int) -> Response:
+    store = get_deck_store()
+    await store.delete_slide(deck_id, slide_id)
+    return Response("", media_type="text/html", status_code=200)
 
 
 @router.post("/ui/plan_form", response_class=Response)
@@ -166,6 +218,64 @@ async def ui_events():
                         yield (await sse_event("heartbeat", {"ts": int(now)})).encode(
                             "utf-8"
                         )
+                        last_hb = now
+        finally:
+            ui_event_bus.unsubscribe(q)
+
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.get("/ui/decks/{deck_id}/events")
+async def ui_deck_events(deck_id: str):
+    """Deck-scoped SSE endpoint that filters events by deck_id in data payload."""
+    import time
+    import asyncio as _asyncio
+    from fastapi.responses import StreamingResponse
+
+    async def gen():
+        q = ui_event_bus.subscribe()
+        try:
+            yield (
+                await sse_event("hello", {"ts": int(time.time()), "deck_id": deck_id})
+            ).encode("utf-8")
+            last_hb = time.time()
+            while True:
+                try:
+                    msg = await _asyncio.wait_for(q.get(), timeout=15)
+                    # Filter by deck_id by peeking JSON in data line
+                    try:
+                        # msg is an SSE string with 'data: {json}\n\n'
+                        data_line = next(
+                            (ln for ln in msg.split("\n") if ln.startswith("data:")),
+                            None,
+                        )
+                        if data_line is not None:
+                            import json as _json
+
+                            payload = _json.loads(data_line[5:].strip())
+                            if payload.get("deck_id") not in (None, deck_id):
+                                # skip events for other decks
+                                continue
+                    except Exception:
+                        pass
+                    yield msg.encode("utf-8")
+                    last_hb = time.time()
+                except _asyncio.TimeoutError:
+                    now = time.time()
+                    if now - last_hb >= 15:
+                        yield (
+                            await sse_event(
+                                "heartbeat", {"ts": int(now), "deck_id": deck_id}
+                            )
+                        ).encode("utf-8")
                         last_hb = now
         finally:
             ui_event_bus.unsubscribe(q)
