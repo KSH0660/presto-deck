@@ -6,8 +6,6 @@ from app.models.schema import HealthResponse, ReadyResponse
 import asyncio
 from contextlib import asynccontextmanager
 
-from app.api.v1 import slides as slides_api
-from app.api.v1 import generate as generate_api
 from app.api.v1 import export as export_api
 from app.api.v1 import system as system_api
 from app.api.v1 import plan as plan_api
@@ -65,8 +63,6 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-app.include_router(slides_api.router, prefix="/api/v1")
-app.include_router(generate_api.router, prefix="/api/v1")
 app.include_router(export_api.router, prefix="/api/v1")
 app.include_router(system_api.router, prefix="/api/v1")
 if settings.ENABLE_METRICS:
