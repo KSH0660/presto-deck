@@ -1,9 +1,11 @@
-# app/core/config.py
+# app/core/infra/config.py
 
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    """애플리케이션 설정을 관리합니다 (.env 로딩)."""
+
     # LLM Provider Settings
     OPENAI_API_KEY: str = ""
 
@@ -26,14 +28,17 @@ class Settings(BaseSettings):
 
     # Logging
     LOG_DIR: str = "logs"
-    LOG_LEVEL: str = "INFO"  # DEBUG, INFO, WARNING, ERROR
-    LOG_ROTATE_WHEN: str = "midnight"  # 'S', 'M', 'H', 'D', 'W0'-'W6', 'midnight'
-    LOG_ROTATE_INTERVAL: int = 1  # Rotation interval for TimedRotatingFileHandler
-    LOG_BACKUP_COUNT: int = 7  # Number of rotated files to keep
+    LOG_LEVEL: str = "INFO"
+    LOG_ROTATE_WHEN: str = "midnight"
+    LOG_ROTATE_INTERVAL: int = 1
+    LOG_BACKUP_COUNT: int = 7
     LOG_FILE_BASENAME: str = "presto"
+
+    # Metrics / Feature toggles
+    ENABLE_METRICS: bool = True
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
-# Create a single, reusable instance of the settings
+# Singleton settings instance
 settings = Settings()

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from app.core.config import settings
-from app.core.template_manager import get_template_summaries
+from app.core.infra.config import settings
+from app.core.templates.template_manager import get_template_summaries
 from app.models.schema import MetaResponse, TemplatesResponse
 
 

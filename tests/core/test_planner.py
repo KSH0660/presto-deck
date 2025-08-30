@@ -3,8 +3,8 @@
 import pytest
 from unittest.mock import patch, AsyncMock
 
-from app.core.planner import plan_deck
-from app.models.schema import DeckPlan, SlideSpec
+from app.core.planning.planner import plan_deck
+from app.models.schema import InitialDeckPlan, SlideContent
 
 pytestmark = pytest.mark.asyncio
 
@@ -16,14 +16,14 @@ async def test_plan_deck():
     processes the input and returns a valid DeckPlan object.
     """
     # The expected return value from the mocked LLM call
-    mock_result_plan = DeckPlan(
+    mock_result_plan = InitialDeckPlan(
         topic="Mocked Topic",
         audience="Mocked Audience",
-        slides=[SlideSpec(slide_id=1, title="Test Slide")],
+        slides=[SlideContent(slide_id=1, title="Test Slide")],
     )
 
     # Patch the build_planner_chain to return a mock chain
-    with patch("app.core.planner.build_planner_chain") as mock_build_chain:
+    with patch("app.core.planning.planner.build_planner_chain") as mock_build_chain:
         # Create a mock chain with an AsyncMock for ainvoke
         mock_chain = AsyncMock()
         mock_chain.ainvoke.return_value = mock_result_plan

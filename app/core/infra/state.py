@@ -1,4 +1,4 @@
-# app/core/state.py
+# app/core/infra/state.py
 
 """인메모리 상태 및 안전한 ID 생성기."""
 
