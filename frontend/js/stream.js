@@ -70,10 +70,14 @@
             else if (line.startsWith('data:')) data = line.slice(5).trim()
           })
           if (event === 'slide_rendered') {
-            // htmx SSE will trigger slides refresh
+            // Proactively refresh as a fallback in case hx-sse isn't active
+            await refreshSlides()
+            try { document.dispatchEvent(new CustomEvent('slide_rendered', { detail: {} })) } catch {}
           } else if (event === 'completed') {
-            // htmx SSE will trigger final refresh
+            // Final refresh to ensure latest state
+            await refreshSlides()
             try { const d = JSON.parse(data); if (status) status.textContent = `Completed in ${Math.round((d.duration_ms||0)/1000)}s` } catch {}
+            try { document.dispatchEvent(new CustomEvent('completed', { detail: {} })) } catch {}
           }
         }
       }
