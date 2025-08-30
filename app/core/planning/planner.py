@@ -1,9 +1,9 @@
 # app/core/planner.py
 
 from langchain.schema.runnable import Runnable
-from app.core.llm import make_llm
+from app.core.providers.llm import make_llm
 from app.models.schema import InitialDeckPlan
-from app.core.prompts import PLANNER_PROMPT
+from app.core.planning.prompts import PLANNER_PROMPT
 import logging
 
 logger = logging.getLogger(__name__)

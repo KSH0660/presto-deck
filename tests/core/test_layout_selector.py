@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import patch, AsyncMock
 
-from app.core.layout_selector import run_layout_selection_for_deck
+from app.core.selection.layout_selector import run_layout_selection_for_deck
 from app.models.schema import InitialDeckPlan, SlideContent, SlideSpec, DeckPlan
 
 pytestmark = pytest.mark.asyncio
@@ -33,9 +33,12 @@ async def test_run_layout_selection_for_deck(mock_initial_deck_plan):
     """
     # Mock the dependencies
     with (
-        patch("app.core.layout_selector.get_template_summaries") as mock_get_summaries,
         patch(
-            "app.core.layout_selector.select_layout_for_slide", new_callable=AsyncMock
+            "app.core.selection.layout_selector.get_template_summaries"
+        ) as mock_get_summaries,
+        patch(
+            "app.core.selection.layout_selector.select_layout_for_slide",
+            new_callable=AsyncMock,
         ) as mock_select_for_slide,
     ):
         # Configure mock return values

@@ -6,14 +6,17 @@ from app.models.schema import HealthResponse, ReadyResponse
 import asyncio
 from contextlib import asynccontextmanager
 
-from app.api.v1 import presentation
+from app.api.v1 import slides as slides_api
+from app.api.v1 import generate as generate_api
+from app.api.v1 import export as export_api
 from app.api.v1 import system as system_api
-from app.core.config import settings
-from app.core.template_manager import (
+from app.core.infra.config import settings
+from app.core.infra.metrics import metrics_router
+from app.core.templates.template_manager import (
     initialize_template_data,
     get_template_summaries,
 )
-from app.core.logging_config import configure_logging
+from app.core.infra.logging import configure_logging
 
 configure_logging()
 
@@ -58,8 +61,12 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-app.include_router(presentation.router, prefix="/api/v1")
+app.include_router(slides_api.router, prefix="/api/v1")
+app.include_router(generate_api.router, prefix="/api/v1")
+app.include_router(export_api.router, prefix="/api/v1")
 app.include_router(system_api.router, prefix="/api/v1")
+if settings.ENABLE_METRICS:
+    app.include_router(metrics_router)
 
 
 @app.get("/healthz", response_model=HealthResponse)

@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import patch, AsyncMock
 
-from app.core.content_writer import write_slide_content
+from app.core.rendering.content_writer import write_slide_content
 from app.models.schema import SlideSpec, DeckPlan, SlideHTML, GenerateRequest
 
 pytestmark = pytest.mark.asyncio
@@ -35,7 +35,9 @@ async def test_write_slide_content(
         slide_id=1, template_name="test.html", html="<h1>Test Slide</h1>"
     )
 
-    with patch("app.core.content_writer.build_renderer_chain") as mock_build_chain:
+    with patch(
+        "app.core.rendering.content_writer.build_renderer_chain"
+    ) as mock_build_chain:
         mock_chain = AsyncMock()
         mock_chain.ainvoke.return_value = mock_result_html
         mock_build_chain.return_value = mock_chain

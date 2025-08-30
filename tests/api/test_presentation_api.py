@@ -39,7 +39,7 @@ async def test_edit_slide(client):
 
     # LLM 편집 함수 패치
     with patch(
-        "app.api.v1.presentation.edit_slide_content",
+        "app.api.v1.slides.edit_slide_content",
         new=AsyncMock(return_value="<h1>Edited</h1>"),
     ):
         resp = await client.post(
@@ -100,7 +100,7 @@ async def test_export_html(client):
 
 async def test_progress_sse(client):
     """진행 SSE가 이벤트를 스트리밍하는지 확인 (sleep 패치로 빠르게)."""
-    with patch("app.api.v1.presentation.asyncio.sleep", new=AsyncMock()) as _:
+    with patch("app.api.v1.generate.asyncio.sleep", new=AsyncMock()) as _:
         async with client.stream("GET", "/api/v1/progress") as r:
             assert r.status_code == 200
             assert r.headers["content-type"].startswith("text/event-stream")
@@ -118,7 +118,7 @@ async def test_generate_sse_smoke(client):
         yield 'event: slide_rendered\ndata: {"index":0}\n\n'
         yield 'event: completed\ndata: {"total":1}\n\n'
 
-    with patch("app.api.v1.presentation.stream_presentation", new=fake_stream):
+    with patch("app.api.v1.generate.stream_presentation", new=fake_stream):
         payload = {"user_prompt": "Hello", "theme": None, "color_preference": None}
         async with client.stream("POST", "/api/v1/generate", json=payload) as r:
             assert r.status_code == 200

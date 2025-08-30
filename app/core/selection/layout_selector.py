@@ -1,13 +1,13 @@
-# app/core/layout_selector.py
+# app/core/selection/layout_selector.py
 import asyncio
 import logging
 from typing import List
 
 from langchain.schema.runnable import Runnable
 
-from app.core.llm import make_llm
-from app.core.prompts import SELECTOR_PROMPT
-from app.core.template_manager import get_template_summaries
+from app.core.providers.llm import make_llm
+from app.core.selection.prompts import SELECTOR_PROMPT
+from app.core.templates.template_manager import get_template_summaries
 from app.models.schema import (
     InitialDeckPlan,
     SlideContent,

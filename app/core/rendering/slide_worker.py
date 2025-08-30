@@ -1,32 +1,31 @@
-# app/core/slide_worker.py
+# app/core/rendering/slide_worker.py
 
-import logging  # Added
-from typing import Dict, List
+import logging
+from typing import Dict
 from app.models.schema import SlideSpec, DeckPlan, SlideHTML, GenerateRequest
-from app.core.content_writer import write_slide_content, subset_catalog_to_prompt
+from app.core.rendering.content_writer import (
+    write_slide_content,
+    subset_catalog_to_prompt,
+)
 
-logger = logging.getLogger(__name__)  # Added
+logger = logging.getLogger(__name__)
 
 
 async def process_slide(
     slide_spec: SlideSpec,
     deck_plan: DeckPlan,
     req: GenerateRequest,
-    candidate_template_names: List[str],
     template_catalog: Dict[str, str],
     model: str,
 ) -> SlideHTML:
     """한 슬라이드의 전체 처리과정을 담당하는 워커"""
-    logger.info(
-        "Processing slide %d: %s", slide_spec.slide_id, slide_spec.title
-    )  # Added
+    logger.info("Processing slide %d: %s", slide_spec.slide_id, slide_spec.title)
 
-    # 후보 템플릿 HTML을 프롬프트용으로 변환
+    candidate_names = slide_spec.layout_candidates or []
     candidate_templates_html = subset_catalog_to_prompt(
-        template_catalog, candidate_template_names
+        template_catalog, candidate_names
     )
 
-    # 컨텐츠 생성
     rendered_slide = await write_slide_content(
         slide_spec=slide_spec,
         deck_plan=deck_plan,
@@ -37,5 +36,5 @@ async def process_slide(
 
     logger.info(
         "Finished processing slide %d: %s", slide_spec.slide_id, slide_spec.title
-    )  # Added
+    )
     return rendered_slide

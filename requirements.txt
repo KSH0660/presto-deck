@@ -14,3 +14,4 @@ pydantic
 xhtml2pdf
 streamlit
 python-multipart
+prometheus-client

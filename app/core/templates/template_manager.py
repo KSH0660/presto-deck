@@ -5,9 +5,9 @@ import os
 import glob
 from typing import Dict, Optional
 
-from app.core.config import settings
-from app.core.llm import make_llm
-from app.core.prompts import TEMPLATE_SUMMARY_PROMPT
+from app.core.infra.config import settings
+from app.core.providers.llm import make_llm
+from app.core.templates.prompts import TEMPLATE_SUMMARY_PROMPT
 from app.models.schema import TemplateSummary
 
 # 전역 변수로 템플릿 요약 및 원본 HTML 캐시

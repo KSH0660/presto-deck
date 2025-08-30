@@ -1,15 +1,14 @@
-# app/core/logging_config.py
+# app/core/infra/logging.py
 
 import logging
 import sys
 import os
 from logging.handlers import TimedRotatingFileHandler
-from app.core.config import settings
+from app.core.infra.config import settings
 
 
 def configure_logging():
     """애플리케이션 로깅을 설정합니다(콘솔 + 파일 회전)."""
-    # Root logger 설정
     root = logging.getLogger()
     level_name = (settings.LOG_LEVEL or "INFO").upper()
     level = getattr(logging, level_name, logging.INFO)
@@ -20,7 +19,6 @@ def configure_logging():
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    # 콘솔 핸들러
     if not any(
         isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
         for h in root.handlers
@@ -30,7 +28,6 @@ def configure_logging():
         ch.setLevel(level)
         root.addHandler(ch)
 
-    # 파일 핸들러 (시간 기반 회전)
     try:
         log_dir = settings.LOG_DIR or "logs"
         os.makedirs(log_dir, exist_ok=True)
@@ -48,10 +45,8 @@ def configure_logging():
             fh.setLevel(level)
             root.addHandler(fh)
     except Exception:
-        # 파일 핸들러 설정 실패 시 콘솔만 사용
         pass
 
-    # 외부 라이브러리 로그 레벨 조정
     logging.getLogger("uvicorn").setLevel(logging.INFO)
     logging.getLogger("uvicorn.access").setLevel(logging.INFO)
     logging.getLogger("httpx").setLevel(logging.WARNING)

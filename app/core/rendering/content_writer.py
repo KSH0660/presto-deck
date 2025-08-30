@@ -1,11 +1,11 @@
-# app/core/content_writer.py
+# app/core/rendering/content_writer.py
 
 from typing import Dict, List
 import logging
 from langchain.schema.runnable import Runnable
-from app.core.llm import make_llm
+from app.core.providers.llm import make_llm
 from app.models.schema import SlideSpec, SlideHTML, DeckPlan, GenerateRequest
-from app.core.prompts import RENDER_PROMPT
+from app.core.rendering.prompts import RENDER_PROMPT
 
 logger = logging.getLogger(__name__)
 
