@@ -1,0 +1,35 @@
+<form id="deck-plan-form" hx-post="/api/v1/ui/render_from_form" hx-target="#slides-area" hx-swap="innerHTML">
+  <div class="grid md:grid-cols-2 gap-3 mb-3">
+    <input class="w-full p-2 border rounded" name="topic" placeholder="Topic" value="{{ deck.topic }}"/>
+    <input class="w-full p-2 border rounded" name="audience" placeholder="Audience" value="{{ deck.audience }}"/>
+    <input class="w-full p-2 border rounded" name="theme" placeholder="Theme" value="{{ deck.theme or '' }}"/>
+    <input class="w-full p-2 border rounded" name="color_preference" placeholder="Color Preference" value="{{ deck.color_preference or '' }}"/>
+    <input type="hidden" name="user_prompt" value="" />
+  </div>
+  <div>
+    <h3 class="font-semibold mb-2">Slides</h3>
+    <div class="grid md:grid-cols-2 gap-3">
+      {% for s in deck.slides %}
+        <div class="card">
+          <h4 class="font-semibold">#{{ s.slide_id }} {{ s.title or 'Untitled' }}</h4>
+          <input type="hidden" name="slides[{{ loop.index0 }}][slide_id]" value="{{ s.slide_id }}" />
+          <label class="text-xs text-slate-500">Title</label>
+          <input class="w-full p-2 border rounded" name="slides[{{ loop.index0 }}][title]" value="{{ s.title | replace('\"', '&quot;') }}" />
+          <label class="text-xs text-slate-500">Key Points (one per line)</label>
+          <textarea class="w-full p-2 border rounded" name="slides[{{ loop.index0 }}][key_points]">{{ (s.key_points or []) | join("\n") }}</textarea>
+          <label class="text-xs text-slate-500">Numbers (JSON)</label>
+          <textarea class="w-full p-2 border rounded" name="slides[{{ loop.index0 }}][numbers]">{% if s.numbers %}{{ s.numbers | tojson(indent=2) }}{% endif %}</textarea>
+          <label class="text-xs text-slate-500">Notes</label>
+          <textarea class="w-full p-2 border rounded" name="slides[{{ loop.index0 }}][notes]">{{ s.notes or '' }}</textarea>
+          <label class="text-xs text-slate-500">Section</label>
+          <input class="w-full p-2 border rounded" name="slides[{{ loop.index0 }}][section]" value="{{ s.section or '' }}" />
+          <label class="text-xs text-slate-500">Layout Candidates (comma-separated)</label>
+          <input class="w-full p-2 border rounded" name="slides[{{ loop.index0 }}][layout_candidates]" value="{{ (s.layout_candidates or []) | join(', ') }}" />
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="flex gap-2 justify-end mt-3">
+    <button type="submit" class="bg-blue-600 text-white px-3 py-2 rounded">Render Deck</button>
+  </div>
+</form>

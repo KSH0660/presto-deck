@@ -13,6 +13,7 @@ from app.api.v1 import system as system_api
 from app.api.v1 import plan as plan_api
 from app.api.v1 import render_modular as render_api
 from app.api.v1 import sessions as sessions_api
+from app.api.v1 import ui as ui_api
 from app.core.infra.config import settings
 from app.core.infra.metrics import metrics_router
 from app.core.templates.template_manager import (
@@ -73,6 +74,7 @@ if settings.ENABLE_METRICS:
 app.include_router(plan_api.router, prefix="/api/v1")
 app.include_router(render_api.router, prefix="/api/v1")
 app.include_router(sessions_api.router, prefix="/api/v1")
+app.include_router(ui_api.router, prefix="/api/v1")
 
 
 @app.get("/healthz", response_model=HealthResponse)

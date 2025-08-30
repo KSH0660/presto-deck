@@ -1,0 +1,32 @@
+<div id="slide-{{ slide.id }}" class="slide-card {% if slide.status == 'editing' %}editing{% endif %}">
+  <h2 style="display:flex;justify-content:space-between;align-items:center;margin:0;background:#059669;color:white;padding:8px 12px;font-size:1.1em;overflow:hidden;">
+    <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ slide.title or 'Untitled Slide' }}</span>
+    <span style="font-size:12px;opacity:0.9;padding-left:8px;">#{{ slide.id }}</span>
+  </h2>
+  <div class="slide-content">
+    {% if slide.html_content %}
+      <iframe scrolling="no" srcdoc="<!DOCTYPE html><html><head><style>body{margin:0;padding:20px;font-family:'Segoe UI',sans-serif;color:#333;transform:scale(0.9);transform-origin:top left}img{max-width:100%;height:auto}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}</style></head><body>{{ slide.html_content | e }}</body></html>"></iframe>
+    {% elif slide.status == 'editing' %}
+      <div class="spinner"></div><p>Editing...</p>
+    {% else %}
+      <p>No content yet.</p>
+    {% endif %}
+  </div>
+  <div class="card-footer">
+    <button class="btn-toggle-code">Code</button>
+    <button class="btn-preview">Preview</button>
+    <details>
+      <summary class="cursor-pointer">AI Edit</summary>
+      <form hx-post="/api/v1/ui/slides/{{ slide.id }}/edit" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML">
+        <textarea class="w-full p-2 border rounded" name="edit_prompt" placeholder="Describe your change"></textarea>
+        <div class="mt-1 flex justify-end">
+          <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded">Apply</button>
+        </div>
+      </form>
+    </details>
+    <button class="btn-delete danger" hx-delete="/api/v1/slides/{{ slide.id }}/delete" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML:remove">Delete</button>
+  </div>
+  <div class="code-view" style="display:none;max-height:200px;overflow:auto;background:#2d2d2d;color:#f1f1f1;padding:8px;border-top:1px solid #444;">
+    <pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:'Courier New',Courier,monospace;font-size:13px;"><code>{{ slide.html_content }}</code></pre>
+  </div>
+</div>

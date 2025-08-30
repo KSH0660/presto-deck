@@ -1,0 +1,5 @@
+{% for slide in slides %}
+  {% include 'slide_card.html' %}
+{% else %}
+  <div class="text-slate-500">No slides yet. Render the deck to see slides.</div>
+{% endfor %}
