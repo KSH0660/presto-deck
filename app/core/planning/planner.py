@@ -4,6 +4,7 @@ from langchain.schema.runnable import Runnable
 from app.core.providers.llm import make_llm
 from app.models.schema import InitialDeckPlan
 from app.core.planning.prompts import PLANNER_PROMPT
+from app.core.infra.llm_callbacks import PrometheusLLMCallback
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,8 @@ async def plan_deck(user_request: str, model: str) -> InitialDeckPlan:
     llm = make_llm(model=model)
     planner_chain = build_planner_chain(llm)
     initial_deck_plan: InitialDeckPlan = await planner_chain.ainvoke(
-        {"user_request": user_request}
+        {"user_request": user_request},
+        config={"callbacks": [PrometheusLLMCallback("plan")]},
     )
     logger.info(
         "Deck planning completed. Generated %d slides.", len(initial_deck_plan.slides)

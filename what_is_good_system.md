@@ -1,18 +1,18 @@
- Concise Summary of Good System Design
-Keep it simple: Good designs don’t look complex and run without frequent issues.
+Good System Guidelines
 
-State management is hardest: Minimize stateful components; centralize state in the database.
+- Clarity: Single-purpose endpoints with typed inputs/outputs.
+- Observability: Metrics for steps and LLM usage (tokens, latency).
+- Reliability: Graceful fallbacks for optional deps (Redis off by default).
+- Testability: Fast tests with mocks; avoid network in CI.
+- Extensibility: Storage abstraction; modular plan/select/render pipeline.
+- Safety: Input validation via Pydantic; bounded concurrency; timeouts.
 
-Database first: Focus on schema, indexing, and reducing bottlenecks before adding caching or other optimizations.
+Flow Targets
+- Step 1: Session creation supports prompt + file uploads.
+- Step 2: Return DeckPlan; user can edit common fields and per-slide specs.
+- Step 3: Render from confirmed DeckPlan; allow natural-language edits.
 
-Be cautious with caching & events: Cache only when necessary; prefer simple request–response over excessive eventing.
-
-Separate fast vs. slow tasks: User-facing requests must be quick; long tasks go to background jobs.
-
-Focus on hot paths: Critical flows deserve the most design/testing effort.
-
-Observability matters: Log failures, monitor CPU/memory, and track tail latencies (p95/p99).
-
-Failure handling: Use kill switches, circuit breakers, retries with idempotency; choose fail-open vs. fail-closed wisely.
-
-Boring is good: Stable systems come from proven, simple methods—not flashy complexity.
+Operational Notes
+- Prometheus endpoint at `/metrics` exposes counters/histograms.
+- LLM callbacks log token usage by op: plan/select/render.
+- Redis storage can be enabled via env `USE_REDIS=true` and `REDIS_URL`.

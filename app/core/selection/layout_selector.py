@@ -15,6 +15,7 @@ from app.models.schema import (
     LayoutCandidates,
     DeckPlan,
 )
+from app.core.infra.llm_callbacks import PrometheusLLMCallback
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,8 @@ async def select_layout_for_slide(
                 "slide_titles": slide_titles,
                 "current_slide_json": slide_content.model_dump_json(indent=2),
                 "template_summaries": template_summaries_prompt,
-            }
+            },
+            config={"callbacks": [PrometheusLLMCallback("select")]},
         )
         logger.debug(
             "Layout selected for slide %d: %s",

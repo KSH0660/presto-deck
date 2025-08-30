@@ -10,6 +10,9 @@ from app.api.v1 import slides as slides_api
 from app.api.v1 import generate as generate_api
 from app.api.v1 import export as export_api
 from app.api.v1 import system as system_api
+from app.api.v1 import plan as plan_api
+from app.api.v1 import render_modular as render_api
+from app.api.v1 import sessions as sessions_api
 from app.core.infra.config import settings
 from app.core.infra.metrics import metrics_router
 from app.core.templates.template_manager import (
@@ -67,6 +70,9 @@ app.include_router(export_api.router, prefix="/api/v1")
 app.include_router(system_api.router, prefix="/api/v1")
 if settings.ENABLE_METRICS:
     app.include_router(metrics_router)
+app.include_router(plan_api.router, prefix="/api/v1")
+app.include_router(render_api.router, prefix="/api/v1")
+app.include_router(sessions_api.router, prefix="/api/v1")
 
 
 @app.get("/healthz", response_model=HealthResponse)

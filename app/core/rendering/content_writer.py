@@ -6,6 +6,7 @@ from langchain.schema.runnable import Runnable
 from app.core.providers.llm import make_llm
 from app.models.schema import SlideSpec, SlideHTML, DeckPlan, GenerateRequest
 from app.core.rendering.prompts import RENDER_PROMPT
+from app.core.infra.llm_callbacks import PrometheusLLMCallback
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,7 @@ async def write_slide_content(
             "audience": deck_plan.audience,
             "theme": theme,
             "color_preference": color_pref,
-        }
+        },
+        config={"callbacks": [PrometheusLLMCallback("render")]},
     )
     return rendered_slide

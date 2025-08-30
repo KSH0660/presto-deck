@@ -17,9 +17,55 @@
             <p class="text-slate-500">Enter a topic and let the AI create a presentation for you in real-time.</p>
         </header>
 
+        <!-- New: Step 1 - Session + Upload -->
+        <section class="border rounded p-4">
+            <h2 class="text-xl font-semibold mb-3">Step 1. Create Session</h2>
+            <form id="session-form" class="grid md:grid-cols-2 gap-3">
+                <div class="md:col-span-2">
+                    <label class="text-sm text-slate-600">Your request</label>
+                    <textarea id="session-user-prompt" name="user_prompt" class="w-full p-3 border rounded" placeholder="Describe your deck goal and constraints" required>Create a compelling presentation about the benefits of adopting renewable energy sources for a general audience. Focus on environmental impact, economic advantages, and long-term sustainability. Include key statistics and examples of successful implementations worldwide. The presentation should encourage individuals and communities to consider transitioning to green energy. Aim for a clear, engaging, and persuasive tone.</textarea>
+                </div>
+                <div>
+                    <label class="text-sm text-slate-600">Theme</label>
+                    <input id="session-theme" name="theme" class="w-full p-2 border rounded" placeholder="Minimal / Corporate / Playful" />
+                </div>
+                <div>
+                    <label class="text-sm text-slate-600">Color Preference</label>
+                    <input id="session-color" name="color_preference" class="w-full p-2 border rounded" placeholder="Blue / Green / ..." />
+                </div>
+                <div class="md:col-span-2">
+                    <label class="text-sm text-slate-600">Attachments (optional)</label>
+                    <input id="session-files" name="files" class="w-full p-2 border rounded" type="file" multiple />
+                </div>
+                <div class="md:col-span-2 flex gap-2 justify-end">
+                    <button type="button" id="session-submit" class="bg-emerald-600 text-white px-3 py-2 rounded">Create Session & Plan</button>
+                </div>
+            </form>
+            <p id="session-status" class="text-xs text-slate-500 mt-2"></p>
+        </section>
+
+        <!-- Step 2: DeckPlan review/edit -->
+        <section id="plan-editor" class="border rounded p-4 hidden">
+            <h2 class="text-xl font-semibold mb-3">Step 2. Review & Edit Deck Plan</h2>
+            <div class="grid md:grid-cols-2 gap-3 mb-3">
+                <input id="plan-topic" class="w-full p-2 border rounded" placeholder="Topic" />
+                <input id="plan-audience" class="w-full p-2 border rounded" placeholder="Audience" />
+                <input id="plan-theme" class="w-full p-2 border rounded" placeholder="Theme" />
+                <input id="plan-color" class="w-full p-2 border rounded" placeholder="Color Preference" />
+            </div>
+            <div>
+                <h3 class="font-semibold mb-2">Slides</h3>
+                <div id="plan-editor-slides" class="grid md:grid-cols-2 gap-3"></div>
+            </div>
+            <div class="flex gap-2 justify-end mt-3">
+                <button id="plan-render" class="bg-blue-600 text-white px-3 py-2 rounded">Render Deck</button>
+            </div>
+        </section>
+
+        <!-- Legacy quick generate (SSE) still available) -->
         <form id="prompt-form" @submit.prevent="generate()" class="flex flex-col gap-3">
-            <textarea id="user-prompt" name="prompt" class="w-full p-3 border rounded" placeholder="e.g., 'The history of space exploration' or 'An introduction to quantum computing'" required>Create a compelling presentation about the benefits of adopting renewable energy sources for a general audience. Focus on environmental impact, economic advantages, and long-term sustainability. Include key statistics and examples of successful implementations worldwide. The presentation should encourage individuals and communities to consider transitioning to green energy. Aim for a clear, engaging, and persuasive tone.</textarea>
-            <button type="submit" id="generate-btn" class="self-end bg-emerald-600 text-white px-4 py-2 rounded">Generate Presentation</button>
+            <textarea id="user-prompt" name="prompt" class="w-full p-3 border rounded" placeholder="Quick generate via SSE (optional)" required></textarea>
+            <button type="submit" id="generate-btn" class="self-end bg-emerald-600 text-white px-4 py-2 rounded">Quick Generate (SSE)</button>
         </form>
         <!-- Edit panel below the generator form -->
         <section id="edit-panel" class="border rounded p-4">
@@ -76,6 +122,7 @@
 
     <!-- Refactored modular scripts (load in order) -->
     <script src="js/config.js"></script>
+    <script src="js/planflow.js"></script>
     <script src="js/modal.js"></script>
     <script src="js/slides.js"></script>
     <script src="js/events.js"></script>

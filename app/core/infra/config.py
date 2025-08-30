@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # Metrics / Feature toggles
     ENABLE_METRICS: bool = True
 
+    # Redis (optional)
+    USE_REDIS: bool = False
+    REDIS_URL: str = "redis://localhost:6379/0"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

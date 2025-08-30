@@ -17,6 +17,7 @@ dependencies = [
     "openai>=1.101.0",
     "pre-commit>=4.3.0",
     "prometheus-client>=0.22.1",
+    "python-multipart>=0.0.9",
     "pydantic-settings>=2.10.1",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
