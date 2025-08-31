@@ -10,6 +10,7 @@ from app.api.v1 import system as system_api
 from app.api.v1 import sessions as sessions_api
 from app.api.v1 import ui as ui_api
 from app.api.v1 import decks as decks_api
+from app.api.v1.routes import deck_routes
 from app.core.infra.config import settings
 from app.core.infra.metrics import metrics_router
 from app.core.templates.template_manager import (
@@ -77,6 +78,9 @@ if settings.ENABLE_METRICS:
 app.include_router(sessions_api.router, prefix="/api/v1")
 app.include_router(ui_api.router, prefix="/api/v1")
 app.include_router(decks_api.router, prefix="/api/v1")
+
+# 새로운 클린 아키텍처 라우터
+app.include_router(deck_routes.router, prefix="/api")
 
 
 @app.get("/healthz", response_model=HealthResponse)
