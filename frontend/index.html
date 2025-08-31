@@ -1,147 +1,172 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-white">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presto Deck Generator</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Tailwind CSS via CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- htmx + Alpine.js -->
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <!-- IMPORTANT: load SSE extension so hx-sse works -->
-    <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/sse.js"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <title>Presto Deck</title>
+    <link href="/output.css" rel="stylesheet">
+    <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-slate-50">
-    <div class="container" x-data="prestoApp()">
-        <header class="text-center pb-5 border-b">
-            <h1 class="text-2xl font-bold text-emerald-600">Presto: AI Presentation Generator</h1>
-            <p class="text-slate-500">Enter a topic and let the AI create a presentation for you in real-time.</p>
-        </header>
-
-        <!-- Decks: List & Create -->
-        <section class="border rounded p-4">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="text-xl font-semibold">My Decks</h2>
-                <div class="flex items-center gap-2">
-                    <button id="refresh-decks" class="bg-slate-200 text-slate-800 px-3 py-2 rounded border">Refresh</button>
+<body class="h-full">
+    <div class="flex min-h-full">
+        <!-- Static sidebar for desktop -->
+        <div class="hidden lg:flex lg:flex-shrink-0">
+            <div class="flex w-64 flex-col">
+                <div class="flex min-h-0 flex-1 flex-col border-r border-gray-200 bg-gray-50">
+                    <div class="flex flex-1 flex-col overflow-y-auto pb-4 pt-5">
+                        <div class="flex flex-shrink-0 items-center px-4">
+                            <h1 class="text-2xl font-bold text-emerald-600">Presto</h1>
+                        </div>
+                        <nav class="mt-5 flex-1" aria-label="Sidebar">
+                            <div class="space-y-1 px-2">
+                                <!-- Current: "bg-gray-200 text-gray-900", Default: "text-gray-600 hover:bg-gray-100" -->
+                                <a href="#" class="bg-gray-200 text-gray-900 group flex items-center rounded-md px-2 py-2 text-sm font-medium" aria-current="page">
+                                    <svg class="mr-3 h-6 w-6 flex-shrink-0 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955a1.125 1.125 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                                    </svg>
+                                    Home
+                                </a>
+                                <a href="#" class="text-gray-600 hover:bg-gray-100 group flex items-center rounded-md px-2 py-2 text-sm font-medium">
+                                    <svg class="mr-3 h-6 w-6 flex-shrink-0 text-gray-400 group-hover:text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                                    </svg>
+                                    My Decks
+                                </a>
+                            </div>
+                        </nav>
+                    </div>
                 </div>
-            </div>
-            <div id="deck-list" class="grid md:grid-cols-3 gap-3"></div>
-        </section>
-
-        <section class="border rounded p-4 mt-4">
-            <h2 class="text-xl font-semibold mb-3">Create New Deck</h2>
-            <form id="new-deck-form" class="grid md:grid-cols-2 gap-3">
-                <div class="md:col-span-2">
-                    <label class="text-sm text-slate-600">Your request</label>
-                    <textarea id="new-user-prompt" class="w-full p-3 border rounded" placeholder="Describe your deck goal and constraints" required>Create a compelling presentation about the benefits of adopting renewable energy sources for a general audience.</textarea>
-                </div>
-                <div>
-                    <label class="text-sm text-slate-600">Theme</label>
-                    <input id="new-theme" class="w-full p-2 border rounded" placeholder="Minimal / Corporate / Playful" />
-                </div>
-                <div>
-                    <label class="text-sm text-slate-600">Color Preference</label>
-                    <input id="new-color" class="w-full p-2 border rounded" placeholder="Blue / Green / ..." />
-                </div>
-                <div class="md:col-span-2 flex gap-2 justify-end">
-                    <button type="submit" class="bg-emerald-600 text-white px-3 py-2 rounded">Create Deck</button>
-                </div>
-            </form>
-            <p class="text-xs text-slate-500 mt-2">The deck will appear in the list. Click to open and edit.</p>
-        </section>
-
-        <!-- Deck Plan Editor -->
-        <section class="border rounded p-4 mt-4">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="text-xl font-semibold">Deck Plan Editor</h2>
-                <div class="text-sm text-slate-600" id="current-deck-label">No deck selected</div>
-            </div>
-            <div id="plan-editor" class="hidden">
-                <div class="grid md:grid-cols-2 gap-3 mb-3">
-                    <input id="plan-topic" class="w-full p-2 border rounded" placeholder="Topic" />
-                    <input id="plan-audience" class="w-full p-2 border rounded" placeholder="Audience" />
-                    <input id="plan-theme" class="w-full p-2 border rounded" placeholder="Theme" />
-                    <input id="plan-color" class="w-full p-2 border rounded" placeholder="Color Preference" />
-                </div>
-                <div>
-                    <h3 class="font-semibold mb-2">Slides</h3>
-                    <div id="plan-editor-slides" class="grid md:grid-cols-2 gap-3"></div>
-                </div>
-                <div class="flex gap-2 justify-end mt-3">
-                    <button id="plan-save" class="bg-slate-700 text-white px-3 py-2 rounded">Save Plan</button>
-                    <button id="plan-render" class="bg-blue-600 text-white px-3 py-2 rounded">Render Deck (Stream)</button>
-                </div>
-            </div>
-            <p id="deck-status" class="text-xs text-slate-500 mt-2"></p>
-        </section>
-
-        <!-- Legacy SSE quick-generate removed in htmx-first UI -->
-        <!-- Edit panel below the generator form -->
-        <section id="edit-panel" class="border rounded p-4">
-            <h2 class="text-xl font-semibold mb-3">Edit Slide (AI)</h2>
-            <form id="edit-slide-form" @submit.prevent="submitEdit()" class="flex flex-col gap-2">
-                <div class="flex items-center gap-2">
-                    <label for="edit-slide-id" class="text-sm text-slate-600">Selected Slide ID</label>
-                    <input id="edit-slide-id" class="border rounded p-2 w-32" type="number" min="1" placeholder="Slide ID" required />
-                    <span x-text="selectedLabel" class="text-xs text-slate-500"></span>
-                </div>
-                <textarea id="edit-slide-prompt" class="border rounded p-2" placeholder="Describe the change you want (e.g., 'Make the heading bold and add a subheading with key stats')." required>Make the content concise and emphasize the key point.</textarea>
-                <div class="flex gap-2 justify-end">
-                    <button type="button" id="export-html-btn" class="bg-slate-600 text-white px-3 py-1 rounded">Export HTML</button>
-                    <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded">Apply Edit</button>
-                </div>
-            </form>
-            <p class="text-xs text-slate-500 mt-1">Tip: Click any slide card to select it for editing. Double‑click to preview full size.</p>
-        </section>
-
-        <!-- Deck Plan Overview -->
-        <section id="deck-plan-section" class="border rounded p-4 hidden">
-            <h2 class="text-xl font-semibold mb-3">Deck Plan</h2>
-            <div id="deck-plan-meta" class="text-sm text-slate-600"></div>
-            <ol id="deck-plan-titles" class="list-decimal ml-5 mt-2"></ol>
-        </section>
-
-        <main id="presentation-container">
-            <div id="status-area">
-                <p id="status-text">Waiting for a topic...</p>
-                <div id="progress-bar-container" class="hidden">
-                    <div id="progress-bar"></div>
-                </div>
-                <div id="slides-toolbar" class="mt-2 flex gap-2 items-center">
-                    <button id="sort-id-btn" class="bg-slate-200 text-slate-800 px-2 py-1 rounded border">Sort: Arrival</button>
-                </div>
-            </div>
-            <div id="slides-area"
-                 hx-ext="sse"
-                 hx-sse="connect:/api/v1/ui/events"
-                 hx-get="/api/v1/ui/slides"
-                 hx-trigger="load, sse:slide_rendered, sse:completed"
-                 hx-swap="innerHTML"></div>
-        </main>
-
-        <footer class="text-center pt-5 border-t text-slate-500">
-            <p>Powered by Presto Co-pilot</p>
-        </footer>
-    </div>
-
-    <!-- Modal Structure -->
-    <div id="slide-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <div id="modal-slide-viewer">
-                <!-- Expanded slide content will be loaded here -->
             </div>
         </div>
-    </div>
 
-    <!-- Refactored modular scripts (load in order) -->
-    <script src="js/config.js"></script>
-    <script src="js/modal.js"></script>
-    <script src="js/decks.js"></script>
-    <script src="js/stream.js"></script>
-    <script src="app.js"></script>
+        <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
+            <div class="lg:hidden">
+                <div class="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-1.5">
+                    <div>
+                        <h1 class="text-2xl font-bold text-emerald-600">Presto</h1>
+                    </div>
+                    <div>
+                        <button type="button" class="-mr-3 inline-flex h-12 w-12 items-center justify-center rounded-md text-gray-500 hover:text-gray-900">
+                            <span class="sr-only">Open sidebar</span>
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <main class="flex flex-1 overflow-hidden">
+                <div class="flex flex-1 flex-col overflow-y-auto">
+                    <div>
+                        <!-- Main content -->
+                        <div class="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+                            <div class="text-center">
+                                <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">What are you creating a presentation about?</h2>
+                                <p class="mt-4 text-lg text-gray-600">Get started with a prompt, or describe a document.</p>
+                            </div>
+
+                            <form
+                                hx-post="/api/v1/ui/plan_form"
+                                hx-target="#deck-plan"
+                                hx-swap="innerHTML"
+                                class="mt-12"
+                            >
+                                <div class="relative">
+                                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        name="user_prompt"
+                                        class="block w-full rounded-md border-0 bg-white py-4 pl-10 pr-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6"
+                                        placeholder="e.g. A pitch deck for a new AI-powered writing assistant"
+                                    >
+                                </div>
+                                <div class="mt-6 flex justify-center">
+                                    <button type="submit" class="rounded-md bg-emerald-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+                                        Generate presentation
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <div id="deck-plan" class="mt-8 overflow-y-auto p-4">
+                        <!-- Deck plan will be loaded here -->
+                    </div>
+                    <div id="slides-area" class="mt-8 overflow-y-auto p-4">
+                        <!-- Slides will be rendered here -->
+                    </div>
+                </div>
+
+                <aside class="hidden w-96 flex-shrink-0 border-l border-gray-200 xl:flex xl:flex-col">
+                    <!-- Chat/Edit panel -->
+                    <div class="px-4 py-6 sm:px-6 lg:px-8">
+                        <h2 class="text-lg font-medium text-gray-900">Chat</h2>
+                    </div>
+                </aside>
+            </main>
+        </div>
+    </div>
+    <script>
+    async function startRendering(deckId, userPrompt) {
+        const slidesArea = document.getElementById('slides-area');
+        slidesArea.innerHTML = ''; // Clear previous slides
+
+        try {
+            const response = await fetch(`/api/v1/decks/${deckId}/render/stream`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ user_prompt: userPrompt })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) {
+                    break;
+                }
+                const chunk = decoder.decode(value);
+                // The chunk can contain multiple events, so we need to split them
+                const events = chunk.split('\n\n');
+                for (const event of events) {
+                    if (event.startsWith('event: slide_rendered')) {
+                        const dataLine = event.split('\n')[1];
+                        if (dataLine) {
+                            const data = JSON.parse(dataLine.substring(5)); // remove "data:"
+                            if (data.html) {
+                                const iframe = document.createElement('iframe');
+                                iframe.srcdoc = data.html;
+                                iframe.className = 'w-full h-full border-0';
+
+                                const slideContainer = document.createElement('div');
+                                slideContainer.className = 'w-full aspect-video bg-white shadow-lg rounded-lg overflow-hidden mb-4';
+                                slideContainer.appendChild(iframe);
+
+                                slidesArea.appendChild(slideContainer);
+                            }
+                        }
+                    } else if (event.startsWith('event: completed')) {
+                        // Handle completed event if needed
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error during rendering:', error);
+        }
+    }
+    </script>
 </body>
 </html>

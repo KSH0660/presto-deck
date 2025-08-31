@@ -2,6 +2,7 @@
 
 from typing import Dict, List
 import logging
+
 from langchain.schema.runnable import Runnable
 from app.core.providers.llm import make_llm
 from app.models.schema import SlideSpec, SlideHTML, DeckPlan, GenerateRequest

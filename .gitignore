@@ -79,3 +79,21 @@ cython_debug/
 # Logs
 logs/
 uploads/
+
+*.png
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/.pnp.*
+frontend/.yarn/*
+frontend/yarn-error.log
+frontend/.parcel-cache/
+frontend/.cache/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local

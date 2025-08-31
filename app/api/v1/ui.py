@@ -113,8 +113,32 @@ async def plan_form(
         color_preference=color_preference or deck.color_preference,
         slides=deck.slides,
     )
+
+    # Create the deck and get the ID
+    store = get_deck_store()
+    deck_id = await store.create_deck(deck)
+
     tmpl = env.get_template("deck_plan_editor.html")
-    html = tmpl.render(deck=deck)
+    deck_with_id = deck.model_dump()
+    deck_with_id["deck_id"] = deck_id
+    html = tmpl.render(deck=deck_with_id, user_prompt=user_prompt)
+    return Response(html, media_type="text/html")
+
+
+@router.put("/ui/decks/{deck_id}/plan", response_class=Response)
+async def update_deck_plan_ui(deck_id: str, request: Request) -> Response:
+    """Update a deck plan from the editor form."""
+    form_data = await request.form()
+    deck_plan = _parse_deck_from_form(form_data)
+    store = get_deck_store()
+    await store.update_deck_plan(deck_id, deck_plan)
+
+    # Re-render the editor to reflect the changes
+    tmpl = env.get_template("deck_plan_editor.html")
+    # The deck object passed to the template needs a deck_id
+    deck_with_id = deck_plan.model_dump()
+    deck_with_id["deck_id"] = deck_id
+    html = tmpl.render(deck=deck_with_id)
     return Response(html, media_type="text/html")
 
 
