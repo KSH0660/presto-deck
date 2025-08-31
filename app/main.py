@@ -6,10 +6,7 @@ from app.models.schema import HealthResponse, ReadyResponse
 import asyncio
 from contextlib import asynccontextmanager
 
-from app.api.v1 import export as export_api
 from app.api.v1 import system as system_api
-from app.api.v1 import plan as plan_api
-from app.api.v1 import render_modular as render_api
 from app.api.v1 import sessions as sessions_api
 from app.api.v1 import ui as ui_api
 from app.api.v1 import decks as decks_api
@@ -74,12 +71,9 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-app.include_router(export_api.router, prefix="/api/v1")
 app.include_router(system_api.router, prefix="/api/v1")
 if settings.ENABLE_METRICS:
     app.include_router(metrics_router)
-app.include_router(plan_api.router, prefix="/api/v1")
-app.include_router(render_api.router, prefix="/api/v1")
 app.include_router(sessions_api.router, prefix="/api/v1")
 app.include_router(ui_api.router, prefix="/api/v1")
 app.include_router(decks_api.router, prefix="/api/v1")

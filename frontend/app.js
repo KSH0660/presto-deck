@@ -22,7 +22,14 @@
       }
       if (btn.classList.contains('btn-preview')) {
         const iframe = card.querySelector('iframe')
-        if (iframe && iframe.srcdoc) window.Presto?.modal?.open(iframe.srcdoc)
+        // Expand AI Edit details in-card for quick edits
+        const editDetails = card.querySelector('details')
+        if (editDetails) editDetails.open = true
+        if (iframe && iframe.srcdoc) {
+          const slideId = card.dataset.slideId
+          const deckId = card.dataset.deckId
+          window.Presto?.modal?.open(iframe.srcdoc, { slideId, deckId })
+        }
       }
     })
   })

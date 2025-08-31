@@ -104,6 +104,16 @@ async def list_slides(deck_id: str) -> JSONResponse:
     return JSONResponse(slides)
 
 
+@router.get("/decks/{deck_id}/slides/{slide_id}")
+async def get_slide(deck_id: str, slide_id: int) -> JSONResponse:
+    """Return a single slide record for a deck."""
+    store = get_deck_store()
+    slide = await store.get_slide(deck_id, slide_id)
+    if not slide:
+        raise HTTPException(status_code=404, detail="Slide not found")
+    return JSONResponse(slide)
+
+
 class DeckRenderRequest(GenerateRequest):
     slides: Optional[List[SlideSpec]] = None
 
@@ -224,6 +234,8 @@ async def render_deck_stream(deck_id: str, req: DeckRenderRequest) -> StreamingR
                         {"slide_id": _res.slide_id, "deck_id": deck_id},
                     )
                     SLIDES_RENDERED.inc()
+                    import time as _time
+
                     await store.add_or_update_slide(
                         deck_id,
                         {
@@ -231,6 +243,14 @@ async def render_deck_stream(deck_id: str, req: DeckRenderRequest) -> StreamingR
                             "title": _spec.title,
                             "html_content": _res.html,
                             "version": 1,
+                            "versions": [
+                                {
+                                    "version": 1,
+                                    "html": _res.html,
+                                    "prompt": None,
+                                    "ts": int(_time.time()),
+                                }
+                            ],
                             "status": "complete",
                         },
                     )
@@ -321,3 +341,49 @@ async def delete_slide(deck_id: str, slide_id: int) -> JSONResponse:
     store = get_deck_store()
     await store.delete_slide(deck_id, slide_id)
     return JSONResponse({"ok": True})
+
+
+@router.put("/decks/{deck_id}/slides/{slide_id}")
+async def update_slide(deck_id: str, slide_id: int, payload: dict) -> JSONResponse:
+    """Directly update slide fields such as html_content/title and bump version.
+
+    This is used by the visual editor (e.g., GrapesJS) to save changes.
+    """
+    store = get_deck_store()
+    slide = await store.get_slide(deck_id, slide_id)
+    if not slide:
+        raise HTTPException(status_code=404, detail="Slide not found")
+
+    html_content = payload.get("html_content")
+    title = payload.get("title")
+    commit_message = payload.get("commit_message") or "editor_update"
+
+    updated = False
+    if isinstance(title, str) and title.strip():
+        slide["title"] = title.strip()
+        updated = True
+    if isinstance(html_content, str):
+        slide["html_content"] = html_content
+        # append versions history
+        import time as _time
+
+        versions = slide.get("versions") or []
+        new_version = int(slide.get("version", 0)) + 1
+        versions.append(
+            {
+                "version": new_version,
+                "html": html_content,
+                "prompt": commit_message,
+                "ts": int(_time.time()),
+            }
+        )
+        slide["versions"] = versions
+        slide["version"] = new_version
+        updated = True
+
+    if not updated:
+        # No changes provided
+        return JSONResponse(slide)
+
+    await store.add_or_update_slide(deck_id, slide)
+    return JSONResponse(slide)

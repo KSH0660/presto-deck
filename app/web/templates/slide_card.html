@@ -1,21 +1,55 @@
-<div id="slide-{{ slide.id }}" class="slide-card {% if slide.status == 'editing' %}editing{% endif %}">
-  <h2 style="display:flex;justify-content:space-between;align-items:center;margin:0;background:#059669;color:white;padding:8px 12px;font-size:1.1em;overflow:hidden;">
-    <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ slide.title or 'Untitled Slide' }}</span>
-    <span style="font-size:12px;opacity:0.9;padding-left:8px;">#{{ slide.id }}</span>
-  </h2>
-  <div class="slide-content">
-    {% if slide.html_content %}
-      <iframe scrolling="no" srcdoc="<!DOCTYPE html><html><head><style>body{margin:0;padding:20px;font-family:'Segoe UI',sans-serif;color:#333;transform:scale(0.9);transform-origin:top left}img{max-width:100%;height:auto}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}</style></head><body>{{ slide.html_content | e }}</body></html>"></iframe>
-    {% elif slide.status == 'editing' %}
-      <div class="spinner"></div><p>Editing...</p>
-    {% else %}
-      <p>No content yet.</p>
-    {% endif %}
+<div id="slide-{{ slide.id }}" class="slide-card {% if slide.status == 'editing' %}editing{% endif %}"
+     data-slide-id="{{ slide.id }}" {% if deck_id is defined %}data-deck-id="{{ deck_id }}"{% endif %}>
+  <div class="slide-main" style="display:flex;flex-direction:column;flex:1;min-height:240px;">
+    <h2 style="display:flex;justify-content:space-between;align-items:center;margin:0;background:#059669;color:white;padding:8px 12px;font-size:1.1em;overflow:hidden;">
+      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ slide.title or 'Untitled Slide' }}</span>
+      <span style="font-size:12px;opacity:0.9;padding-left:8px;">#{{ slide.id }} v{{ slide.version or 1 }}</span>
+    </h2>
+    <div class="slide-content">
+      {% if preview_html %}
+        <iframe scrolling="no" srcdoc="<!DOCTYPE html><html><head><style>body{margin:0;padding:20px;font-family:'Segoe UI',sans-serif;color:#333;transform:scale(0.9);transform-origin:top left}img{max-width:100%;height:auto}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}</style></head><body>{{ preview_html | e }}</body></html>"></iframe>
+      {% elif slide.pending_html %}
+        <div style="display:flex; gap:8px; height:100%; padding:6px; box-sizing:border-box;">
+          <div style="flex:1; border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; background:#fff; position:relative;">
+            <div style="position:absolute; top:6px; left:6px; background:#111827; color:#fff; font-size:12px; padding:2px 6px; border-radius:4px; opacity:0.9;">Current</div>
+            {% if slide.html_content %}
+            <iframe scrolling="no" srcdoc="<!DOCTYPE html><html><head><style>body{margin:0;padding:20px;font-family:'Segoe UI',sans-serif;color:#333;transform:scale(0.9);transform-origin:top left}img{max-width:100%;height:auto}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}</style></head><body>{{ slide.html_content | e }}</body></html>"></iframe>
+            {% else %}
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6b7280;">No current content</div>
+            {% endif %}
+          </div>
+          <div style="flex:1; border:2px solid #3b82f6; border-radius:6px; overflow:hidden; background:#fff; position:relative;">
+            <div style="position:absolute; top:6px; left:6px; background:#1d4ed8; color:#fff; font-size:12px; padding:2px 6px; border-radius:4px; opacity:0.95;">Edited</div>
+            <iframe scrolling="no" srcdoc="<!DOCTYPE html><html><head><style>body{margin:0;padding:20px;font-family:'Segoe UI',sans-serif;color:#333;transform:scale(0.9);transform-origin:top left}img{max-width:100%;height:auto}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}</style></head><body>{{ slide.pending_html | e }}</body></html>"></iframe>
+          </div>
+        </div>
+      {% elif slide.html_content %}
+        <iframe scrolling="no" srcdoc="<!DOCTYPE html><html><head><style>body{margin:0;padding:20px;font-family:'Segoe UI',sans-serif;color:#333;transform:scale(0.9);transform-origin:top left}img{max-width:100%;height:auto}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}</style></head><body>{{ slide.html_content | e }}</body></html>"></iframe>
+      {% elif slide.status == 'editing' %}
+        <div class="spinner"></div><p>Editing...</p>
+      {% else %}
+        <p>No content yet.</p>
+      {% endif %}
+    </div>
+    <div class="code-view" style="display:none;max-height:200px;overflow:auto;background:#2d2d2d;color:#f1f1f1;padding:8px;border-top:1px solid #444;">
+      <pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:'Courier New',Courier,monospace;font-size:13px;"><code>{{ slide.html_content }}</code></pre>
+    </div>
   </div>
-  <div class="card-footer">
+  <div class="slide-actions" style="width:160px;display:flex;flex-direction:column;gap:8px;align-items:stretch;justify-content:flex-start;padding:8px;border-left:1px solid #e5e7eb;background:#f9fafb;">
     <button class="btn-toggle-code">Code</button>
     <button class="btn-preview">Preview</button>
-    <details>
+    {% if deck_id is defined %}
+    <a class="btn-editor" href="/editor.html?deck_id={{ deck_id }}&slide_id={{ slide.id }}" style="display:inline-block;text-align:center;background:#10b981;color:#fff;padding:8px;border-radius:6px;text-decoration:none;">Editor</a>
+    {% else %}
+    <a class="btn-editor" href="/editor.html?slide_id={{ slide.id }}" style="display:inline-block;text-align:center;background:#10b981;color:#fff;padding:8px;border-radius:6px;text-decoration:none;">Editor</a>
+    {% endif %}
+    {% if deck_id is defined %}
+    <button class="btn-delete danger" hx-delete="/api/v1/ui/decks/{{ deck_id }}/slides/{{ slide.id }}/delete" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML:remove">Delete</button>
+    {% else %}
+    <button class="btn-delete danger" hx-delete="/api/v1/ui/slides/{{ slide.id }}/delete" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML:remove">Delete</button>
+    {% endif %}
+
+    <details class="mt-2">
       <summary class="cursor-pointer">AI Edit</summary>
       {% if deck_id is defined %}
       <form hx-post="/api/v1/ui/decks/{{ deck_id }}/slides/{{ slide.id }}/edit" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML">
@@ -28,13 +62,48 @@
         </div>
       </form>
     </details>
-    {% if deck_id is defined %}
-    <button class="btn-delete danger" hx-delete="/api/v1/ui/decks/{{ deck_id }}/slides/{{ slide.id }}/delete" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML:remove">Delete</button>
-    {% else %}
-    <button class="btn-delete danger" hx-delete="/api/v1/ui/slides/{{ slide.id }}/delete" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML:remove">Delete</button>
+
+    {% if slide.pending_html %}
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        {% if deck_id is defined %}
+        <form hx-post="/api/v1/ui/decks/{{ deck_id }}/slides/{{ slide.id }}/apply_edit" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML">
+          <input type="hidden" name="decision" value="accept" />
+          <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Use Edited</button>
+        </form>
+        <form hx-post="/api/v1/ui/decks/{{ deck_id }}/slides/{{ slide.id }}/apply_edit" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML">
+          <input type="hidden" name="decision" value="reject" />
+          <button type="submit" class="bg-gray-600 text-white px-2 py-1 rounded">Keep Current</button>
+        </form>
+        {% else %}
+        <form hx-post="/api/v1/ui/slides/{{ slide.id }}/apply_edit" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML">
+          <input type="hidden" name="decision" value="accept" />
+          <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded">Use Edited</button>
+        </form>
+        <form hx-post="/api/v1/ui/slides/{{ slide.id }}/apply_edit" hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML">
+          <input type="hidden" name="decision" value="reject" />
+          <button type="submit" class="bg-gray-600 text-white px-2 py-1 rounded">Keep Current</button>
+        </form>
+        {% endif %}
+      </div>
     {% endif %}
-  </div>
-  <div class="code-view" style="display:none;max-height:200px;overflow:auto;background:#2d2d2d;color:#f1f1f1;padding:8px;border-top:1px solid #444;">
-    <pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-family:'Courier New',Courier,monospace;font-size:13px;"><code>{{ slide.html_content }}</code></pre>
+
+    {% if slide.versions %}
+      <div class="mt-2">
+        <div class="text-xs text-slate-600 mb-1">Versions</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          {% for v in slide.versions %}
+            {% if deck_id is defined %}
+            <a class="bg-slate-200 text-slate-800 px-2 py-1 rounded border cursor-pointer"
+               hx-get="/api/v1/ui/decks/{{ deck_id }}/slides/{{ slide.id }}?preview_version={{ v.version }}"
+               hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML">v{{ v.version }}</a>
+            {% else %}
+            <a class="bg-slate-200 text-slate-800 px-2 py-1 rounded border cursor-pointer"
+               hx-get="/api/v1/ui/slides/{{ slide.id }}?preview_version={{ v.version }}"
+               hx-target="#slide-{{ slide.id }}" hx-swap="outerHTML">v{{ v.version }}</a>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
   </div>
 </div>

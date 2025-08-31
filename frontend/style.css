@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* frontend/style.css */
 
 :root {
@@ -422,3 +423,6 @@ footer {
     color: var(--primary-dark-color);
     font-weight: bold;
 }
+=======
+@import "tailwindcss";
+>>>>>>> f994a389cf46c82b515628decfbc3389a825d2f2

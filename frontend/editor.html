@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Presto Slide Editor</title>
+  <link rel="stylesheet" href="/style.css" />
+  <!-- GrapesJS -->
+  <link href="https://unpkg.com/grapesjs@0.21.6/dist/css/grapes.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/grapesjs@0.21.6/dist/grapes.min.js"></script>
+  <script src="https://unpkg.com/grapesjs-preset-webpage@1.0.2/dist/grapesjs-preset-webpage.min.js"></script>
+  <style>
+    html, body { height: 100%; }
+    body { margin: 0; }
+    .editor-shell { display: flex; flex-direction: column; height: 100vh; }
+    .editor-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border-bottom: 1px solid #e5e7eb; background: #f9fafb;
+    }
+    .editor-topbar .left, .editor-topbar .right { display: flex; gap: 8px; align-items: center; }
+    .editor-main { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+    .editor-pane { min-width: 0; }
+    #gjs { height: 100%; border-right: 1px solid #e5e7eb; }
+    #live-preview { height: 100%; display: flex; flex-direction: column; }
+    #live-preview iframe { width: 100%; height: 100%; border: 0; background: white; }
+    .btn { background:#059669; color:#fff; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; }
+    .btn.secondary { background:#374151; }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .status { font-size: 12px; color: #6b7280; }
+    .input { border: 1px solid #e5e7eb; padding: 6px 8px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="editor-shell">
+    <div class="editor-topbar">
+      <div class="left">
+        <a id="back-link" class="btn secondary" href="/">Back</a>
+        <div class="status" id="status">Loading slide...</div>
+      </div>
+      <div class="right">
+        <input id="slide-title" class="input" placeholder="Slide title" />
+        <button id="save-btn" class="btn">Save</button>
+      </div>
+    </div>
+    <div class="editor-main">
+      <div class="editor-pane">
+        <div id="gjs"></div>
+      </div>
+      <div class="editor-pane" id="live-preview">
+        <iframe id="preview-frame"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/editor.js"></script>
+</body>
+</html>
