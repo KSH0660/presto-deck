@@ -38,24 +38,101 @@ async def deck_slides_partial(deck_id: str) -> Response:
     return Response(content=html, media_type="text/html")
 
 
+# JSON endpoints for in-memory slides (non-deck workflow)
+@router.get("/ui/slides/{slide_id}/json")
+async def get_inmemory_slide_json(slide_id: int):
+    slide = next((s for s in state.slides_db if s.get("id") == slide_id), None)
+    if not slide:
+        return Response(
+            '{"detail":"Not found"}', media_type="application/json", status_code=404
+        )
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(slide)
+
+
+@router.put("/ui/slides/{slide_id}/json")
+async def update_inmemory_slide_json(slide_id: int, payload: dict):
+    slide = next((s for s in state.slides_db if s.get("id") == slide_id), None)
+    if not slide:
+        return Response(
+            '{"detail":"Not found"}', media_type="application/json", status_code=404
+        )
+
+    title = payload.get("title")
+    html = payload.get("html_content")
+    msg = payload.get("commit_message") or "editor_update"
+
+    updated = False
+    if isinstance(title, str) and title.strip():
+        slide["title"] = title.strip()
+        updated = True
+    if isinstance(html, str):
+        slide["html_content"] = html
+        import time as _time
+
+        versions = slide.get("versions") or []
+        new_version = int(slide.get("version", 0)) + 1
+        versions.append(
+            {
+                "version": new_version,
+                "html": html,
+                "prompt": msg,
+                "ts": int(_time.time()),
+            }
+        )
+        slide["versions"] = versions
+        slide["version"] = new_version
+        updated = True
+
+    from fastapi.responses import JSONResponse
+
+    if not updated:
+        return JSONResponse(slide)
+    return JSONResponse(slide)
+
+
 @router.get("/ui/slides/{slide_id}", response_class=Response)
-async def slide_card_partial(slide_id: int) -> Response:
+async def slide_card_partial(
+    slide_id: int, preview_version: int | None = None
+) -> Response:
     slide = next((s for s in state.slides_db if s.get("id") == slide_id), None)
     if not slide:
         return Response("", media_type="text/html", status_code=404)
     tmpl = env.get_template("slide_card.html")
-    html = tmpl.render(slide=slide)
+    # Resolve preview_html if requested
+    preview_html = None
+    if preview_version is not None:
+        for v in slide.get("versions") or []:
+            try:
+                if int(v.get("version")) == int(preview_version):
+                    preview_html = v.get("html")
+                    break
+            except Exception:
+                continue
+    html = tmpl.render(slide=slide, preview_html=preview_html)
     return Response(content=html, media_type="text/html")
 
 
 @router.get("/ui/decks/{deck_id}/slides/{slide_id}", response_class=Response)
-async def deck_slide_card_partial(deck_id: str, slide_id: int) -> Response:
+async def deck_slide_card_partial(
+    deck_id: str, slide_id: int, preview_version: int | None = None
+) -> Response:
     store = get_deck_store()
     slide = await store.get_slide(deck_id, slide_id)
     if not slide:
         return Response("", media_type="text/html", status_code=404)
     tmpl = env.get_template("slide_card.html")
-    html = tmpl.render(slide=slide, deck_id=deck_id)
+    preview_html = None
+    if preview_version is not None:
+        for v in slide.get("versions") or []:
+            try:
+                if int(v.get("version")) == int(preview_version):
+                    preview_html = v.get("html")
+                    break
+            except Exception:
+                continue
+    html = tmpl.render(slide=slide, deck_id=deck_id, preview_html=preview_html)
     return Response(content=html, media_type="text/html")
 
 
@@ -72,11 +149,62 @@ async def edit_deck_slide_html(
         new_html = await edit_slide_content(
             slide.get("html_content", ""), edit_prompt=edit_prompt
         )
-        slide["html_content"] = new_html
-        slide["version"] = int(slide.get("version", 0)) + 1
+        # Stash the proposed edit and keep current as-is until user decides
+        slide["pending_html"] = new_html
+        slide["previous_html"] = slide.get("html_content", "")
+        slide["pending_prompt"] = edit_prompt
     finally:
         slide["status"] = "complete"
     await store.add_or_update_slide(deck_id, slide)
+    tmpl = env.get_template("slide_card.html")
+    html = tmpl.render(slide=slide, deck_id=deck_id)
+    return Response(content=html, media_type="text/html")
+
+
+@router.post(
+    "/ui/decks/{deck_id}/slides/{slide_id}/apply_edit", response_class=Response
+)
+async def apply_edit_deck_slide_html(
+    deck_id: str, slide_id: int, decision: str = Form(...)
+) -> Response:
+    """Apply or discard a pending edit for a deck slide.
+
+    decision: "accept" to replace with edited version, "reject" to keep previous.
+    """
+    store = get_deck_store()
+    slide = await store.get_slide(deck_id, slide_id)
+    if not slide:
+        return Response("", media_type="text/html", status_code=404)
+
+    # Normalize decision
+    d = (decision or "").strip().lower()
+    if d not in ("accept", "reject"):
+        d = "reject"
+
+    if slide.get("pending_html") is not None:
+        if d == "accept":
+            import time as _time
+
+            new_version = int(slide.get("version", 0)) + 1
+            new_html = slide.get("pending_html")
+            # append to versions history
+            versions = (slide.get("versions") or []) + [
+                {
+                    "version": new_version,
+                    "html": new_html,
+                    "prompt": slide.get("pending_prompt"),
+                    "ts": int(_time.time()),
+                }
+            ]
+            slide["versions"] = versions
+            slide["html_content"] = new_html
+            slide["version"] = new_version
+        # Clear pending regardless of decision
+        slide.pop("pending_html", None)
+        slide.pop("previous_html", None)
+        slide.pop("pending_prompt", None)
+    await store.add_or_update_slide(deck_id, slide)
+
     tmpl = env.get_template("slide_card.html")
     html = tmpl.render(slide=slide, deck_id=deck_id)
     return Response(content=html, media_type="text/html")
@@ -177,12 +305,50 @@ async def edit_slide_html(slide_id: int, edit_prompt: str = Form(...)) -> Respon
     slide["status"] = "editing"
     try:
         new_html = await edit_slide_content(
-            slide["html_content"], edit_prompt=edit_prompt
+            slide.get("html_content", ""), edit_prompt=edit_prompt
         )
-        slide["html_content"] = new_html
-        slide["version"] = int(slide.get("version", 0)) + 1
+        slide["pending_html"] = new_html
+        slide["previous_html"] = slide.get("html_content", "")
+        slide["pending_prompt"] = edit_prompt
     finally:
         slide["status"] = "complete"
+    tmpl = env.get_template("slide_card.html")
+    html = tmpl.render(slide=slide)
+    return Response(html, media_type="text/html")
+
+
+@router.post("/ui/slides/{slide_id}/apply_edit", response_class=Response)
+async def apply_edit_slide_html(slide_id: int, decision: str = Form(...)) -> Response:
+    """Apply or discard a pending edit for non-deck slide cards (in-memory)."""
+    slide = next((s for s in state.slides_db if s.get("id") == slide_id), None)
+    if not slide:
+        return Response("", media_type="text/html", status_code=404)
+
+    d = (decision or "").strip().lower()
+    if d not in ("accept", "reject"):
+        d = "reject"
+
+    if slide.get("pending_html") is not None:
+        if d == "accept":
+            import time as _time
+
+            new_version = int(slide.get("version", 0)) + 1
+            new_html = slide.get("pending_html")
+            versions = (slide.get("versions") or []) + [
+                {
+                    "version": new_version,
+                    "html": new_html,
+                    "prompt": slide.get("pending_prompt"),
+                    "ts": int(_time.time()),
+                }
+            ]
+            slide["versions"] = versions
+            slide["html_content"] = new_html
+            slide["version"] = new_version
+        slide.pop("pending_html", None)
+        slide.pop("previous_html", None)
+        slide.pop("pending_prompt", None)
+
     tmpl = env.get_template("slide_card.html")
     html = tmpl.render(slide=slide)
     return Response(html, media_type="text/html")

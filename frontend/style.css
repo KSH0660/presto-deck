@@ -188,8 +188,8 @@ button:disabled {
 
 #slides-area {
     display: grid;
-    /* Adjust slide preview size */
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    /* One card per row */
+    grid-template-columns: 1fr;
     gap: 20px;
     padding-top: 20px;
     border-top: 1px solid var(--border-color);
@@ -202,9 +202,9 @@ button:disabled {
     box-shadow: 0 2px 8px var(--shadow-color);
     overflow: hidden;
     display: flex;
-    flex-direction: column;
-    aspect-ratio: 16 / 9; /* Give slide cards a presentation aspect ratio */
-    cursor: pointer; /* Indicate it's clickable */
+    flex-direction: row; /* actions on the right */
+    min-height: 360px;
+    cursor: default;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     position: relative;
 }

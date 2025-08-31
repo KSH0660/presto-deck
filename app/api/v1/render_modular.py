@@ -49,12 +49,22 @@ async def render_slides(req: RenderRequest) -> JSONResponse:
         )
         rendered.append(html)
         # Persist to in-memory DB so edit/delete endpoints and export work.
+        import time as _time
+
         state.slides_db.append(
             {
                 "id": spec.slide_id,
                 "title": spec.title,
                 "html_content": html.html,
                 "version": 1,
+                "versions": [
+                    {
+                        "version": 1,
+                        "html": html.html,
+                        "prompt": None,
+                        "ts": int(_time.time()),
+                    }
+                ],
                 "status": "complete",
             }
         )
@@ -166,12 +176,22 @@ async def render_slides_stream(req: RenderRequest) -> StreamingResponse:
                             "slide_rendered", {"slide_id": res.slide_id}
                         )
                         SLIDES_RENDERED.inc()
+                        import time as _time
+
                         state.slides_db.append(
                             {
                                 "id": s.slide_id,
                                 "title": s.title,
                                 "html_content": res.html,
                                 "version": 1,
+                                "versions": [
+                                    {
+                                        "version": 1,
+                                        "html": res.html,
+                                        "prompt": None,
+                                        "ts": int(_time.time()),
+                                    }
+                                ],
                                 "status": "complete",
                             }
                         )
@@ -191,12 +211,22 @@ async def render_slides_stream(req: RenderRequest) -> StreamingResponse:
                         "slide_rendered", {"slide_id": payload.slide_id}
                     )
                     SLIDES_RENDERED.inc()
+                    import time as _time
+
                     state.slides_db.append(
                         {
                             "id": spec.slide_id,
                             "title": spec.title,
                             "html_content": payload.html,
                             "version": 1,
+                            "versions": [
+                                {
+                                    "version": 1,
+                                    "html": payload.html,
+                                    "prompt": None,
+                                    "ts": int(_time.time()),
+                                }
+                            ],
                             "status": "complete",
                         }
                     )
