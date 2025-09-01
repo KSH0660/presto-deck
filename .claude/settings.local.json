@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv add:*)",
+      "Bash(uv run alembic:*)",
+      "Bash(uv sync:*)",
+      "Bash(find:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(python:*)",
+      "Bash(make:*)",
+      "Bash(brew services:*)",
+      "Bash(psql:*)",
+      "Bash(createdb:*)",
+      "Bash(redis-cli:*)",
+      "Bash(createuser:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
