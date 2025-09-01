@@ -101,7 +101,7 @@ Comprehensive test setup including:
 # Run all unit tests
 uv run pytest tests/unit/ -v
 
-# Run all integration tests  
+# Run all integration tests
 uv run pytest tests/integration/ -v
 
 # Run specific test category

@@ -9,7 +9,7 @@
 ### **헥사고날 아키텍처 (Ports & Adapters)**
 ```
 app/
-├── api/                    # FastAPI 라우터, WebSocket 핸들러  
+├── api/                    # FastAPI 라우터, WebSocket 핸들러
 ├── application/            # 비즈니스 로직, 유스케이스
 ├── domain/                 # 핵심 도메인 모델, 레포지토리 인터페이스
 ├── infrastructure/         # 외부 시스템 어댑터

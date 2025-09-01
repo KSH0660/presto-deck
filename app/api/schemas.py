@@ -9,14 +9,14 @@ from app.domain.entities import DeckStatus
 
 # Event Types
 EventType = Literal[
-    "DeckStarted", 
-    "PlanUpdated", 
-    "SlideAdded", 
+    "DeckStarted",
+    "PlanUpdated",
+    "SlideAdded",
     "SlideUpdated",
-    "DeckCompleted", 
-    "DeckFailed", 
-    "DeckCancelled", 
-    "Heartbeat"
+    "DeckCompleted",
+    "DeckFailed",
+    "DeckCancelled",
+    "Heartbeat",
 ]
 
 

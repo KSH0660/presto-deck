@@ -43,7 +43,7 @@ class Database:
     async def session(self) -> AsyncGenerator[AsyncSession, None]:
         if not self.async_session_maker:
             raise RuntimeError("Database not initialized. Call initialize() first.")
-        
+
         async with self.async_session_maker() as session:
             try:
                 yield session

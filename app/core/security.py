@@ -13,20 +13,22 @@ class SecurityService:
     def __init__(self) -> None:
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    def create_access_token(self, data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    def create_access_token(
+        self, data: Dict[str, Any], expires_delta: Optional[timedelta] = None
+    ) -> str:
         """Create a JWT access token."""
         to_encode = data.copy()
         if expires_delta:
             expire = datetime.now(UTC) + expires_delta
         else:
-            expire = datetime.now(UTC) + timedelta(minutes=settings.jwt_expiration_minutes)
-        
+            expire = datetime.now(UTC) + timedelta(
+                minutes=settings.jwt_expiration_minutes
+            )
+
         to_encode.update({"exp": expire, "iat": datetime.now(UTC)})
-        
+
         encoded_jwt = jwt.encode(
-            to_encode,
-            settings.jwt_secret_key,
-            algorithm=settings.jwt_algorithm
+            to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm
         )
         return encoded_jwt
 
@@ -34,9 +36,7 @@ class SecurityService:
         """Verify and decode a JWT token."""
         try:
             payload = jwt.decode(
-                token,
-                settings.jwt_secret_key,
-                algorithms=[settings.jwt_algorithm]
+                token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
             )
             return payload
         except JWTError as e:
@@ -71,7 +71,7 @@ class HTMLSanitizer:
             tags=self.allowed_tags,
             attributes=self.allowed_attributes,
             strip=True,
-            strip_comments=True
+            strip_comments=True,
         )
         return cleaned_html
 
@@ -84,6 +84,7 @@ class HTMLSanitizer:
 # Global instances
 security_service = SecurityService()
 html_sanitizer = HTMLSanitizer()
+
 
 # FastAPI Dependency
 async def get_current_user_id() -> str:

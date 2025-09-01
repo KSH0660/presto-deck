@@ -15,7 +15,7 @@ test: ## Run all tests
 test-unit: ## Run unit tests only
 	uv run pytest tests/unit/ -v
 
-test-integration: ## Run integration tests only  
+test-integration: ## Run integration tests only
 	uv run pytest tests/integration/ -v
 
 test-e2e: ## Run end-to-end tests only
@@ -76,7 +76,7 @@ db-reset: ## Reset development database
 db-seed: ## Seed database with test data
 	uv run python -c "from scripts.seed_db import main; main()"
 
-# Production commands  
+# Production commands
 deploy: ## Deploy to production (placeholder)
 	@echo "Production deployment not configured"
 
@@ -105,3 +105,6 @@ outdated: ## Check for outdated dependencies
 
 ping-redis:
 	uv run python -c "import redis; r = redis.Redis(host='localhost', port=6379); print(r.ping())"
+
+pre-commit:
+	uv run pre-commit run --all-files

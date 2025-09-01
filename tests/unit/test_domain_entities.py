@@ -1,12 +1,9 @@
 """Comprehensive domain entity tests."""
 
-import pytest
 from datetime import datetime, UTC, timedelta
 from uuid import uuid4, UUID
-from typing import Dict, Any
 
 from app.domain.entities import Deck, DeckStatus, Slide, DeckEvent
-from app.domain.exceptions import InvalidDeckStatusException
 
 
 class TestDeck:
@@ -14,11 +11,8 @@ class TestDeck:
 
     def test_deck_creation_with_defaults(self):
         """Test deck creation with default values."""
-        deck = Deck(
-            user_id="test-user",
-            title="Test Deck"
-        )
-        
+        deck = Deck(user_id="test-user", title="Test Deck")
+
         assert isinstance(deck.id, UUID)
         assert deck.user_id == "test-user"
         assert deck.title == "Test Deck"
@@ -35,7 +29,7 @@ class TestDeck:
         custom_id = uuid4()
         custom_time = datetime.now(UTC)
         deck_plan = {"slides": [{"title": "Slide 1"}]}
-        
+
         deck = Deck(
             id=custom_id,
             user_id="custom-user",
@@ -44,9 +38,9 @@ class TestDeck:
             version=5,
             deck_plan=deck_plan,
             created_at=custom_time,
-            updated_at=custom_time
+            updated_at=custom_time,
         )
-        
+
         assert deck.id == custom_id
         assert deck.user_id == "custom-user"
         assert deck.title == "Custom Deck"
@@ -61,23 +55,23 @@ class TestDeck:
         # PENDING state
         sample_deck.status = DeckStatus.PENDING
         assert sample_deck.can_be_cancelled() is True
-        
+
         # PLANNING state
         sample_deck.status = DeckStatus.PLANNING
         assert sample_deck.can_be_cancelled() is True
-        
+
         # GENERATING state
         sample_deck.status = DeckStatus.GENERATING
         assert sample_deck.can_be_cancelled() is True
-        
+
         # COMPLETED state
         sample_deck.status = DeckStatus.COMPLETED
         assert sample_deck.can_be_cancelled() is False
-        
+
         # FAILED state
         sample_deck.status = DeckStatus.FAILED
         assert sample_deck.can_be_cancelled() is False
-        
+
         # CANCELLED state
         sample_deck.status = DeckStatus.CANCELLED
         assert sample_deck.can_be_cancelled() is False
@@ -87,23 +81,23 @@ class TestDeck:
         # PENDING state
         sample_deck.status = DeckStatus.PENDING
         assert sample_deck.can_be_modified() is True
-        
+
         # PLANNING state
         sample_deck.status = DeckStatus.PLANNING
         assert sample_deck.can_be_modified() is True
-        
+
         # GENERATING state
         sample_deck.status = DeckStatus.GENERATING
         assert sample_deck.can_be_modified() is True
-        
+
         # COMPLETED state
         sample_deck.status = DeckStatus.COMPLETED
         assert sample_deck.can_be_modified() is True
-        
+
         # FAILED state
         sample_deck.status = DeckStatus.FAILED
         assert sample_deck.can_be_modified() is False
-        
+
         # CANCELLED state
         sample_deck.status = DeckStatus.CANCELLED
         assert sample_deck.can_be_modified() is False
@@ -114,20 +108,20 @@ class TestDeck:
         in_progress_states = [
             DeckStatus.PENDING,
             DeckStatus.PLANNING,
-            DeckStatus.GENERATING
+            DeckStatus.GENERATING,
         ]
-        
+
         for status in in_progress_states:
             sample_deck.status = status
             assert sample_deck.is_in_progress() is True
-        
+
         # Not in progress states
         not_in_progress_states = [
             DeckStatus.COMPLETED,
             DeckStatus.FAILED,
-            DeckStatus.CANCELLED
+            DeckStatus.CANCELLED,
         ]
-        
+
         for status in not_in_progress_states:
             sample_deck.status = status
             assert sample_deck.is_in_progress() is False
@@ -136,13 +130,14 @@ class TestDeck:
         """Test version increment functionality."""
         initial_version = sample_deck.version
         initial_updated_at = sample_deck.updated_at
-        
+
         # Small delay to ensure timestamp difference
         import time
+
         time.sleep(0.001)
-        
+
         sample_deck.increment_version()
-        
+
         assert sample_deck.version == initial_version + 1
         assert sample_deck.updated_at > initial_updated_at
 
@@ -150,13 +145,14 @@ class TestDeck:
         """Test status update functionality."""
         initial_version = sample_deck.version
         initial_updated_at = sample_deck.updated_at
-        
+
         # Small delay to ensure timestamp difference
         import time
+
         time.sleep(0.001)
-        
+
         sample_deck.update_status(DeckStatus.PLANNING)
-        
+
         assert sample_deck.status == DeckStatus.PLANNING
         assert sample_deck.version == initial_version + 1
         assert sample_deck.updated_at > initial_updated_at
@@ -166,13 +162,14 @@ class TestDeck:
         initial_version = sample_deck.version
         initial_updated_at = sample_deck.updated_at
         plan_data = {"slides": [{"title": "New Slide"}]}
-        
+
         # Small delay to ensure timestamp difference
         import time
+
         time.sleep(0.001)
-        
+
         sample_deck.update_plan(plan_data)
-        
+
         assert sample_deck.deck_plan == plan_data
         assert sample_deck.version == initial_version + 1
         assert sample_deck.updated_at > initial_updated_at
@@ -183,11 +180,11 @@ class TestDeck:
         sample_deck.status = DeckStatus.PENDING
         sample_deck.update_status(DeckStatus.PLANNING)
         assert sample_deck.status == DeckStatus.PLANNING
-        
+
         # PLANNING -> GENERATING
         sample_deck.update_status(DeckStatus.GENERATING)
         assert sample_deck.status == DeckStatus.GENERATING
-        
+
         # GENERATING -> COMPLETED
         sample_deck.update_status(DeckStatus.COMPLETED)
         assert sample_deck.status == DeckStatus.COMPLETED
@@ -197,13 +194,13 @@ class TestDeck:
         cancellable_states = [
             DeckStatus.PENDING,
             DeckStatus.PLANNING,
-            DeckStatus.GENERATING
+            DeckStatus.GENERATING,
         ]
-        
+
         for status in cancellable_states:
             sample_deck.status = status
             assert sample_deck.can_be_cancelled() is True
-            
+
             sample_deck.update_status(DeckStatus.CANCELLED)
             assert sample_deck.status == DeckStatus.CANCELLED
             assert sample_deck.can_be_cancelled() is False
@@ -212,13 +209,17 @@ class TestDeck:
         """Test deck equality and hashing."""
         deck_id = uuid4()
         deck1 = Deck(id=deck_id, user_id="user1", title="Deck 1")
-        deck2 = Deck(id=deck_id, user_id="user2", title="Deck 2")  # Same ID, different data
-        deck3 = Deck(id=uuid4(), user_id="user1", title="Deck 1")  # Different ID, same data
-        
+        deck2 = Deck(
+            id=deck_id, user_id="user2", title="Deck 2"
+        )  # Same ID, different data
+        deck3 = Deck(
+            id=uuid4(), user_id="user1", title="Deck 1"
+        )  # Different ID, same data
+
         # Equality should be based on ID
         assert deck1 == deck2
         assert deck1 != deck3
-        
+
         # Hash should be based on ID
         assert hash(deck1) == hash(deck2)
         assert hash(deck1) != hash(deck3)
@@ -230,11 +231,9 @@ class TestSlide:
     def test_slide_creation_with_defaults(self, sample_deck):
         """Test slide creation with default values."""
         slide = Slide(
-            deck_id=sample_deck.id,
-            slide_order=1,
-            html_content="<h1>Test</h1>"
+            deck_id=sample_deck.id, slide_order=1, html_content="<h1>Test</h1>"
         )
-        
+
         assert isinstance(slide.id, UUID)
         assert slide.deck_id == sample_deck.id
         assert slide.slide_order == 1
@@ -248,7 +247,7 @@ class TestSlide:
         """Test slide creation with all fields specified."""
         slide_id = uuid4()
         custom_time = datetime.now(UTC)
-        
+
         slide = Slide(
             id=slide_id,
             deck_id=sample_deck.id,
@@ -256,9 +255,9 @@ class TestSlide:
             html_content="<h1>Custom Slide</h1><p>Content</p>",
             presenter_notes="Custom presenter notes",
             created_at=custom_time,
-            updated_at=custom_time
+            updated_at=custom_time,
         )
-        
+
         assert slide.id == slide_id
         assert slide.deck_id == sample_deck.id
         assert slide.slide_order == 3
@@ -270,16 +269,17 @@ class TestSlide:
     def test_update_content_with_notes(self, sample_slide):
         """Test updating slide content with presenter notes."""
         initial_updated_at = sample_slide.updated_at
-        
+
         # Small delay to ensure timestamp difference
         import time
+
         time.sleep(0.001)
-        
+
         new_content = "<h1>Updated Slide</h1><p>New content</p>"
         new_notes = "Updated presenter notes"
-        
+
         sample_slide.update_content(new_content, new_notes)
-        
+
         assert sample_slide.html_content == new_content
         assert sample_slide.presenter_notes == new_notes
         assert sample_slide.updated_at > initial_updated_at
@@ -288,15 +288,16 @@ class TestSlide:
         """Test updating slide content without changing presenter notes."""
         initial_notes = sample_slide.presenter_notes
         initial_updated_at = sample_slide.updated_at
-        
+
         # Small delay to ensure timestamp difference
         import time
+
         time.sleep(0.001)
-        
+
         new_content = "<h1>Updated Slide</h1><p>New content</p>"
-        
+
         sample_slide.update_content(new_content, None)
-        
+
         assert sample_slide.html_content == new_content
         assert sample_slide.presenter_notes == initial_notes
         assert sample_slide.updated_at > initial_updated_at
@@ -304,16 +305,17 @@ class TestSlide:
     def test_update_content_empty_notes(self, sample_slide):
         """Test updating slide content with empty notes."""
         initial_updated_at = sample_slide.updated_at
-        
+
         # Small delay to ensure timestamp difference
         import time
+
         time.sleep(0.001)
-        
+
         new_content = "<h1>Updated Slide</h1>"
         empty_notes = ""
-        
+
         sample_slide.update_content(new_content, empty_notes)
-        
+
         assert sample_slide.html_content == new_content
         assert sample_slide.presenter_notes == empty_notes
         assert sample_slide.updated_at > initial_updated_at
@@ -325,13 +327,13 @@ class TestSlide:
             slide = Slide(
                 deck_id=sample_deck.id,
                 slide_order=i,
-                html_content=f"<h1>Slide {i}</h1>"
+                html_content=f"<h1>Slide {i}</h1>",
             )
             slides.append(slide)
-        
+
         # Sort by slide_order
         sorted_slides = sorted(slides, key=lambda s: s.slide_order)
-        
+
         for i, slide in enumerate(sorted_slides, 1):
             assert slide.slide_order == i
             assert f"Slide {i}" in slide.html_content
@@ -340,18 +342,15 @@ class TestSlide:
         """Test slide equality and hashing."""
         slide_id = uuid4()
         slide1 = Slide(
-            id=slide_id, deck_id=sample_deck.id, 
-            slide_order=1, html_content="Content 1"
+            id=slide_id, deck_id=sample_deck.id, slide_order=1, html_content="Content 1"
         )
         slide2 = Slide(
-            id=slide_id, deck_id=sample_deck.id, 
-            slide_order=2, html_content="Content 2"
+            id=slide_id, deck_id=sample_deck.id, slide_order=2, html_content="Content 2"
         )
         slide3 = Slide(
-            id=uuid4(), deck_id=sample_deck.id, 
-            slide_order=1, html_content="Content 1"
+            id=uuid4(), deck_id=sample_deck.id, slide_order=1, html_content="Content 1"
         )
-        
+
         assert slide1 == slide2  # Same ID
         assert slide1 != slide3  # Different ID
         assert hash(slide1) == hash(slide2)
@@ -363,12 +362,8 @@ class TestDeckEvent:
 
     def test_deck_event_creation_with_defaults(self, sample_deck):
         """Test deck event creation with default values."""
-        event = DeckEvent(
-            deck_id=sample_deck.id,
-            version=1,
-            event_type="DeckStarted"
-        )
-        
+        event = DeckEvent(deck_id=sample_deck.id, version=1, event_type="DeckStarted")
+
         assert event.id is None  # ID set by database
         assert event.deck_id == sample_deck.id
         assert event.version == 1
@@ -378,19 +373,12 @@ class TestDeckEvent:
 
     def test_deck_event_creation_with_payload(self, sample_deck):
         """Test deck event creation with payload."""
-        payload = {
-            "title": "Test Deck",
-            "slide_count": 5,
-            "user_action": "create"
-        }
-        
+        payload = {"title": "Test Deck", "slide_count": 5, "user_action": "create"}
+
         event = DeckEvent(
-            deck_id=sample_deck.id,
-            version=2,
-            event_type="SlideAdded",
-            payload=payload
+            deck_id=sample_deck.id, version=2, event_type="SlideAdded", payload=payload
         )
-        
+
         assert event.deck_id == sample_deck.id
         assert event.version == 2
         assert event.event_type == "SlideAdded"
@@ -399,14 +387,14 @@ class TestDeckEvent:
     def test_deck_event_with_custom_timestamp(self, sample_deck):
         """Test deck event creation with custom timestamp."""
         custom_time = datetime.now(UTC) - timedelta(hours=1)
-        
+
         event = DeckEvent(
             deck_id=sample_deck.id,
             version=1,
             event_type="DeckCompleted",
-            created_at=custom_time
+            created_at=custom_time,
         )
-        
+
         assert event.created_at == custom_time
 
     def test_deck_event_types(self, sample_deck):
@@ -419,15 +407,11 @@ class TestDeckEvent:
             "DeckCompleted",
             "DeckFailed",
             "DeckCancelled",
-            "Heartbeat"
+            "Heartbeat",
         ]
-        
+
         for i, event_type in enumerate(event_types, 1):
-            event = DeckEvent(
-                deck_id=sample_deck.id,
-                version=i,
-                event_type=event_type
-            )
+            event = DeckEvent(deck_id=sample_deck.id, version=i, event_type=event_type)
             assert event.event_type == event_type
             assert event.version == i
 
@@ -438,15 +422,17 @@ class TestDeckEvent:
             {"simple": "value"},  # Simple dict
             {"nested": {"key": "value"}},  # Nested dict
             {"list": [1, 2, 3]},  # List in dict
-            {"mixed": {"string": "value", "number": 42, "boolean": True}},  # Mixed types
+            {
+                "mixed": {"string": "value", "number": 42, "boolean": True}
+            },  # Mixed types
         ]
-        
+
         for i, payload in enumerate(payloads, 1):
             event = DeckEvent(
                 deck_id=sample_deck.id,
                 version=i,
                 event_type="TestEvent",
-                payload=payload
+                payload=payload,
             )
             assert event.payload == payload
 
@@ -455,15 +441,13 @@ class TestDeckEvent:
         events = []
         for version in [3, 1, 5, 2, 4]:  # Create in random order
             event = DeckEvent(
-                deck_id=sample_deck.id,
-                version=version,
-                event_type=f"Event{version}"
+                deck_id=sample_deck.id, version=version, event_type=f"Event{version}"
             )
             events.append(event)
-        
+
         # Sort by version
         sorted_events = sorted(events, key=lambda e: e.version)
-        
+
         for i, event in enumerate(sorted_events, 1):
             assert event.version == i
             assert event.event_type == f"Event{i}"
@@ -501,7 +485,7 @@ class TestDeckStatusEnum:
             DeckStatus.GENERATING,
             DeckStatus.COMPLETED,
             DeckStatus.FAILED,
-            DeckStatus.CANCELLED
+            DeckStatus.CANCELLED,
         ]
         assert statuses == expected
 
@@ -528,38 +512,24 @@ class TestEntityValidation:
 
     def test_slide_with_empty_html_content(self, sample_deck):
         """Test slide with empty HTML content."""
-        slide = Slide(
-            deck_id=sample_deck.id,
-            slide_order=1,
-            html_content=""
-        )
+        slide = Slide(deck_id=sample_deck.id, slide_order=1, html_content="")
         assert slide.html_content == ""
 
     def test_slide_with_negative_order(self, sample_deck):
         """Test slide with negative order."""
         slide = Slide(
-            deck_id=sample_deck.id,
-            slide_order=-1,
-            html_content="<h1>Test</h1>"
+            deck_id=sample_deck.id, slide_order=-1, html_content="<h1>Test</h1>"
         )
         assert slide.slide_order == -1
 
     def test_event_with_empty_event_type(self, sample_deck):
         """Test event with empty event type."""
-        event = DeckEvent(
-            deck_id=sample_deck.id,
-            version=1,
-            event_type=""
-        )
+        event = DeckEvent(deck_id=sample_deck.id, version=1, event_type="")
         assert event.event_type == ""
 
     def test_event_with_zero_version(self, sample_deck):
         """Test event with zero version."""
-        event = DeckEvent(
-            deck_id=sample_deck.id,
-            version=0,
-            event_type="TestEvent"
-        )
+        event = DeckEvent(deck_id=sample_deck.id, version=0, event_type="TestEvent")
         assert event.version == 0
 
 
@@ -569,7 +539,7 @@ class TestEntitySerializationAndCopy:
     def test_deck_dict_conversion(self, sample_deck):
         """Test deck to dict conversion."""
         deck_dict = sample_deck.model_dump()
-        
+
         assert deck_dict["id"] == sample_deck.id
         assert deck_dict["user_id"] == sample_deck.user_id
         assert deck_dict["title"] == sample_deck.title
@@ -586,7 +556,7 @@ class TestEntitySerializationAndCopy:
     def test_deck_copy(self, sample_deck):
         """Test deck copying."""
         deck_copy = sample_deck.model_copy()
-        
+
         assert deck_copy.id == sample_deck.id
         assert deck_copy.user_id == sample_deck.user_id
         assert deck_copy is not sample_deck  # Different instances
@@ -594,7 +564,7 @@ class TestEntitySerializationAndCopy:
     def test_deck_copy_with_updates(self, sample_deck):
         """Test deck copying with field updates."""
         deck_copy = sample_deck.model_copy(update={"title": "Updated Title"})
-        
+
         assert deck_copy.title == "Updated Title"
         assert deck_copy.user_id == sample_deck.user_id
         assert deck_copy.id == sample_deck.id

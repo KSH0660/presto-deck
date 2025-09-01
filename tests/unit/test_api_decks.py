@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
 
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
 
 from app.api.schemas import (
     DeckCreationRequest,
@@ -16,7 +15,6 @@ from app.api.schemas import (
     CancellationResponse,
     SlideResponse,
 )
-from app.api.v1.decks import router
 from app.domain.entities import Deck, DeckStatus, Slide
 from app.domain.exceptions import (
     DeckNotFoundException,
@@ -68,18 +66,22 @@ class TestCreateDeckEndpoint:
         )
 
     @pytest.mark.asyncio
-    async def test_create_deck_success(self, sample_deck_request, sample_deck, mock_deck_service):
+    async def test_create_deck_success(
+        self, sample_deck_request, sample_deck, mock_deck_service
+    ):
         """Test successful deck creation."""
         # Setup
         mock_deck_service.create_deck.return_value = sample_deck
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import create_deck
-            
+
             response = await create_deck(
                 request=sample_deck_request,
                 user_id="test-user-123",
@@ -91,23 +93,29 @@ class TestCreateDeckEndpoint:
         assert response.deck_id == sample_deck.id
         assert response.status == DeckStatus.PENDING
         assert response.message == "Deck creation started successfully"
-        
-        mock_deck_service.create_deck.assert_called_once_with(sample_deck_request, "test-user-123")
+
+        mock_deck_service.create_deck.assert_called_once_with(
+            sample_deck_request, "test-user-123"
+        )
         mock_metrics.assert_called_with("POST", "/api/v1/decks", 202, 0.0)
 
     @pytest.mark.asyncio
-    async def test_create_deck_service_error(self, sample_deck_request, mock_deck_service):
+    async def test_create_deck_service_error(
+        self, sample_deck_request, mock_deck_service
+    ):
         """Test deck creation with service error."""
         # Setup
         mock_deck_service.create_deck.side_effect = Exception("Service error")
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import create_deck
-            
+
             with pytest.raises(HTTPException) as exc:
                 await create_deck(
                     request=sample_deck_request,
@@ -201,15 +209,20 @@ class TestGetDeckEndpoint:
     async def test_get_deck_success(self, sample_deck, sample_slides):
         """Test successful deck retrieval."""
         mock_deck_service = AsyncMock()
-        mock_deck_service.get_deck_with_slides.return_value = (sample_deck, sample_slides)
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+        mock_deck_service.get_deck_with_slides.return_value = (
+            sample_deck,
+            sample_slides,
+        )
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import get_deck
-            
+
             response = await get_deck(
                 deck_id=sample_deck.id,
                 user_id="test-user-123",
@@ -224,31 +237,39 @@ class TestGetDeckEndpoint:
         assert response.status == DeckStatus.COMPLETED
         assert response.version == 3
         assert len(response.slides) == 2
-        
+
         # Check slide data
         for i, slide_response in enumerate(response.slides):
             assert isinstance(slide_response, SlideResponse)
             assert slide_response.id == sample_slides[i].id
             assert slide_response.slide_order == i + 1
             assert slide_response.html_content == f"<h1>Slide {i + 1}</h1>"
-        
-        mock_deck_service.get_deck_with_slides.assert_called_once_with(sample_deck.id, "test-user-123")
-        mock_metrics.assert_called_with("GET", f"/api/v1/decks/{sample_deck.id}", 200, 0.0)
+
+        mock_deck_service.get_deck_with_slides.assert_called_once_with(
+            sample_deck.id, "test-user-123"
+        )
+        mock_metrics.assert_called_with(
+            "GET", f"/api/v1/decks/{sample_deck.id}", 200, 0.0
+        )
 
     @pytest.mark.asyncio
     async def test_get_deck_not_found(self):
         """Test deck retrieval when deck not found."""
         deck_id = uuid4()
         mock_deck_service = AsyncMock()
-        mock_deck_service.get_deck_with_slides.side_effect = DeckNotFoundException(f"Deck {deck_id} not found")
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+        mock_deck_service.get_deck_with_slides.side_effect = DeckNotFoundException(
+            f"Deck {deck_id} not found"
+        )
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import get_deck
-            
+
             with pytest.raises(HTTPException) as exc:
                 await get_deck(
                     deck_id=deck_id,
@@ -266,15 +287,19 @@ class TestGetDeckEndpoint:
         """Test deck retrieval when user unauthorized."""
         deck_id = uuid4()
         mock_deck_service = AsyncMock()
-        mock_deck_service.get_deck_with_slides.side_effect = UnauthorizedAccessException("Access denied")
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+        mock_deck_service.get_deck_with_slides.side_effect = (
+            UnauthorizedAccessException("Access denied")
+        )
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import get_deck
-            
+
             with pytest.raises(HTTPException) as exc:
                 await get_deck(
                     deck_id=deck_id,
@@ -293,14 +318,16 @@ class TestGetDeckEndpoint:
         deck_id = uuid4()
         mock_deck_service = AsyncMock()
         mock_deck_service.get_deck_with_slides.side_effect = Exception("Service error")
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import get_deck
-            
+
             with pytest.raises(HTTPException) as exc:
                 await get_deck(
                     deck_id=deck_id,
@@ -349,27 +376,29 @@ class TestListDecksEndpoint:
         """Test successful deck listing."""
         mock_deck_service = AsyncMock()
         mock_deck_service.list_decks.return_value = sample_decks
-        
+
         # Mock get_deck_with_slides to return slides for slide count
         slides_by_deck = {
             sample_decks[0].id: [Mock(), Mock()],  # 2 slides
             sample_decks[1].id: [Mock()],  # 1 slide
             sample_decks[2].id: [Mock(), Mock(), Mock()],  # 3 slides
         }
-        
+
         async def mock_get_deck_with_slides(deck_id, user_id):
             deck = next(d for d in sample_decks if d.id == deck_id)
             return deck, slides_by_deck[deck_id]
-        
+
         mock_deck_service.get_deck_with_slides.side_effect = mock_get_deck_with_slides
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import list_decks
-            
+
             response = await list_decks(
                 limit=10,
                 offset=0,
@@ -380,18 +409,18 @@ class TestListDecksEndpoint:
         # Assertions
         assert isinstance(response, list)
         assert len(response) == 3
-        
+
         for i, deck_response in enumerate(response):
             assert isinstance(deck_response, DeckListResponse)
             assert deck_response.id == sample_decks[i].id
             assert deck_response.title == sample_decks[i].title
             assert deck_response.status == sample_decks[i].status
-        
+
         # Check slide counts
         assert response[0].slide_count == 2
         assert response[1].slide_count == 1
         assert response[2].slide_count == 3
-        
+
         mock_deck_service.list_decks.assert_called_once_with("test-user-123", 10, 0)
         mock_metrics.assert_called_with("GET", "/api/v1/decks", 200, 0.0)
 
@@ -400,14 +429,16 @@ class TestListDecksEndpoint:
         """Test deck listing with no decks."""
         mock_deck_service = AsyncMock()
         mock_deck_service.list_decks.return_value = []
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import list_decks
-            
+
             response = await list_decks(
                 limit=10,
                 offset=0,
@@ -424,21 +455,25 @@ class TestListDecksEndpoint:
     async def test_list_decks_with_pagination(self, sample_decks):
         """Test deck listing with pagination parameters."""
         mock_deck_service = AsyncMock()
-        mock_deck_service.list_decks.return_value = sample_decks[:2]  # Return first 2 decks
-        
+        mock_deck_service.list_decks.return_value = sample_decks[
+            :2
+        ]  # Return first 2 decks
+
         # Mock get_deck_with_slides
         async def mock_get_deck_with_slides(deck_id, user_id):
             deck = next(d for d in sample_decks[:2] if d.id == deck_id)
             return deck, [Mock()]  # 1 slide each
-        
+
         mock_deck_service.get_deck_with_slides.side_effect = mock_get_deck_with_slides
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.trace_async_operation'):
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import list_decks
-            
+
             response = await list_decks(
                 limit=2,
                 offset=10,
@@ -455,14 +490,16 @@ class TestListDecksEndpoint:
         """Test deck listing with service error."""
         mock_deck_service = AsyncMock()
         mock_deck_service.list_decks.side_effect = Exception("Service error")
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import list_decks
-            
+
             with pytest.raises(HTTPException) as exc:
                 await list_decks(
                     limit=10,
@@ -496,14 +533,16 @@ class TestCancelDeckEndpoint:
         """Test successful deck cancellation."""
         mock_deck_service = AsyncMock()
         mock_deck_service.cancel_deck_generation.return_value = sample_deck
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import cancel_deck_generation
-            
+
             response = await cancel_deck_generation(
                 deck_id=sample_deck.id,
                 user_id="test-user-123",
@@ -515,24 +554,32 @@ class TestCancelDeckEndpoint:
         assert response.deck_id == sample_deck.id
         assert response.status == DeckStatus.CANCELLED
         assert response.message == "Deck generation cancellation requested"
-        
-        mock_deck_service.cancel_deck_generation.assert_called_once_with(sample_deck.id, "test-user-123")
-        mock_metrics.assert_called_with("POST", f"/api/v1/decks/{sample_deck.id}/cancel", 202, 0.0)
+
+        mock_deck_service.cancel_deck_generation.assert_called_once_with(
+            sample_deck.id, "test-user-123"
+        )
+        mock_metrics.assert_called_with(
+            "POST", f"/api/v1/decks/{sample_deck.id}/cancel", 202, 0.0
+        )
 
     @pytest.mark.asyncio
     async def test_cancel_deck_not_found(self):
         """Test deck cancellation when deck not found."""
         deck_id = uuid4()
         mock_deck_service = AsyncMock()
-        mock_deck_service.cancel_deck_generation.side_effect = DeckNotFoundException(f"Deck {deck_id} not found")
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+        mock_deck_service.cancel_deck_generation.side_effect = DeckNotFoundException(
+            f"Deck {deck_id} not found"
+        )
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import cancel_deck_generation
-            
+
             with pytest.raises(HTTPException) as exc:
                 await cancel_deck_generation(
                     deck_id=deck_id,
@@ -543,22 +590,28 @@ class TestCancelDeckEndpoint:
         # Assertions
         assert exc.value.status_code == 404
         assert f"Deck {deck_id} not found" in str(exc.value.detail)
-        mock_metrics.assert_called_with("POST", f"/api/v1/decks/{deck_id}/cancel", 404, 0.0)
+        mock_metrics.assert_called_with(
+            "POST", f"/api/v1/decks/{deck_id}/cancel", 404, 0.0
+        )
 
     @pytest.mark.asyncio
     async def test_cancel_deck_unauthorized(self):
         """Test deck cancellation when user unauthorized."""
         deck_id = uuid4()
         mock_deck_service = AsyncMock()
-        mock_deck_service.cancel_deck_generation.side_effect = UnauthorizedAccessException("Access denied")
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+        mock_deck_service.cancel_deck_generation.side_effect = (
+            UnauthorizedAccessException("Access denied")
+        )
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import cancel_deck_generation
-            
+
             with pytest.raises(HTTPException) as exc:
                 await cancel_deck_generation(
                     deck_id=deck_id,
@@ -569,24 +622,30 @@ class TestCancelDeckEndpoint:
         # Assertions
         assert exc.value.status_code == 403
         assert "Access denied" in str(exc.value.detail)
-        mock_metrics.assert_called_with("POST", f"/api/v1/decks/{deck_id}/cancel", 403, 0.0)
+        mock_metrics.assert_called_with(
+            "POST", f"/api/v1/decks/{deck_id}/cancel", 403, 0.0
+        )
 
     @pytest.mark.asyncio
     async def test_cancel_deck_invalid_status(self):
         """Test deck cancellation with invalid status."""
         deck_id = uuid4()
         mock_deck_service = AsyncMock()
-        mock_deck_service.cancel_deck_generation.side_effect = InvalidDeckStatusException(
-            str(deck_id), "COMPLETED", "PENDING, PLANNING, or GENERATING"
+        mock_deck_service.cancel_deck_generation.side_effect = (
+            InvalidDeckStatusException(
+                str(deck_id), "COMPLETED", "PENDING, PLANNING, or GENERATING"
+            )
         )
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import cancel_deck_generation
-            
+
             with pytest.raises(HTTPException) as exc:
                 await cancel_deck_generation(
                     deck_id=deck_id,
@@ -597,7 +656,9 @@ class TestCancelDeckEndpoint:
         # Assertions
         assert exc.value.status_code == 400
         assert "status COMPLETED" in str(exc.value.detail)
-        mock_metrics.assert_called_with("POST", f"/api/v1/decks/{deck_id}/cancel", 400, 0.0)
+        mock_metrics.assert_called_with(
+            "POST", f"/api/v1/decks/{deck_id}/cancel", 400, 0.0
+        )
 
 
 class TestGetDeckEventsEndpoint:
@@ -607,6 +668,7 @@ class TestGetDeckEventsEndpoint:
     def sample_events(self):
         """Create sample deck events."""
         from app.domain.entities import DeckEvent
+
         return [
             DeckEvent(
                 id=1,
@@ -632,14 +694,16 @@ class TestGetDeckEventsEndpoint:
         deck_id = uuid4()
         mock_deck_service = AsyncMock()
         mock_deck_service.get_deck_events.return_value = sample_events
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import get_deck_events
-            
+
             response = await get_deck_events(
                 deck_id=deck_id,
                 from_version=0,
@@ -651,34 +715,42 @@ class TestGetDeckEventsEndpoint:
         assert "events" in response
         events = response["events"]
         assert len(events) == 2
-        
+
         # Check first event
         assert events[0]["event_type"] == "DeckStarted"
         assert events[0]["version"] == 1
         assert events[0]["payload"] == {"title": "Test Deck"}
         assert events[0]["timestamp"] == "2024-01-01T10:00:00"
-        
+
         # Check second event
         assert events[1]["event_type"] == "SlideAdded"
         assert events[1]["version"] == 2
         assert events[1]["payload"] == {"slide_id": "123", "order": 1}
-        
-        mock_deck_service.get_deck_events.assert_called_once_with(deck_id, "test-user-123", 0)
-        mock_metrics.assert_called_with("GET", f"/api/v1/decks/{deck_id}/events", 200, 0.0)
+
+        mock_deck_service.get_deck_events.assert_called_once_with(
+            deck_id, "test-user-123", 0
+        )
+        mock_metrics.assert_called_with(
+            "GET", f"/api/v1/decks/{deck_id}/events", 200, 0.0
+        )
 
     @pytest.mark.asyncio
     async def test_get_deck_events_with_from_version(self, sample_events):
         """Test deck events retrieval with from_version parameter."""
         deck_id = uuid4()
         mock_deck_service = AsyncMock()
-        mock_deck_service.get_deck_events.return_value = sample_events[1:]  # Skip first event
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.trace_async_operation'):
+        mock_deck_service.get_deck_events.return_value = sample_events[
+            1:
+        ]  # Skip first event
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import get_deck_events
-            
+
             response = await get_deck_events(
                 deck_id=deck_id,
                 from_version=1,
@@ -689,22 +761,28 @@ class TestGetDeckEventsEndpoint:
         # Assertions
         assert len(response["events"]) == 1
         assert response["events"][0]["version"] == 2
-        mock_deck_service.get_deck_events.assert_called_once_with(deck_id, "test-user-123", 1)
+        mock_deck_service.get_deck_events.assert_called_once_with(
+            deck_id, "test-user-123", 1
+        )
 
     @pytest.mark.asyncio
     async def test_get_deck_events_not_found(self):
         """Test deck events retrieval when deck not found."""
         deck_id = uuid4()
         mock_deck_service = AsyncMock()
-        mock_deck_service.get_deck_events.side_effect = DeckNotFoundException(f"Deck {deck_id} not found")
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+        mock_deck_service.get_deck_events.side_effect = DeckNotFoundException(
+            f"Deck {deck_id} not found"
+        )
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import get_deck_events
-            
+
             with pytest.raises(HTTPException) as exc:
                 await get_deck_events(
                     deck_id=deck_id,
@@ -716,22 +794,28 @@ class TestGetDeckEventsEndpoint:
         # Assertions
         assert exc.value.status_code == 404
         assert f"Deck {deck_id} not found" in str(exc.value.detail)
-        mock_metrics.assert_called_with("GET", f"/api/v1/decks/{deck_id}/events", 404, 0.0)
+        mock_metrics.assert_called_with(
+            "GET", f"/api/v1/decks/{deck_id}/events", 404, 0.0
+        )
 
     @pytest.mark.asyncio
     async def test_get_deck_events_unauthorized(self):
         """Test deck events retrieval when user unauthorized."""
         deck_id = uuid4()
         mock_deck_service = AsyncMock()
-        mock_deck_service.get_deck_events.side_effect = UnauthorizedAccessException("Access denied")
-        
-        with patch('app.api.v1.decks.get_current_user_id', return_value="test-user-123"), \
-             patch('app.api.v1.decks.get_deck_service', return_value=mock_deck_service), \
-             patch('app.core.observability.metrics.record_http_request') as mock_metrics, \
-             patch('app.core.observability.trace_async_operation'):
+        mock_deck_service.get_deck_events.side_effect = UnauthorizedAccessException(
+            "Access denied"
+        )
+
+        with (
+            patch("app.api.v1.decks.get_current_user_id", return_value="test-user-123"),
+            patch("app.api.v1.decks.get_deck_service", return_value=mock_deck_service),
+            patch("app.core.observability.metrics.record_http_request") as mock_metrics,
+            patch("app.core.observability.trace_async_operation"),
+        ):
 
             from app.api.v1.decks import get_deck_events
-            
+
             with pytest.raises(HTTPException) as exc:
                 await get_deck_events(
                     deck_id=deck_id,
@@ -743,4 +827,6 @@ class TestGetDeckEventsEndpoint:
         # Assertions
         assert exc.value.status_code == 403
         assert "Access denied" in str(exc.value.detail)
-        mock_metrics.assert_called_with("GET", f"/api/v1/decks/{deck_id}/events", 403, 0.0)
+        mock_metrics.assert_called_with(
+            "GET", f"/api/v1/decks/{deck_id}/events", 403, 0.0
+        )

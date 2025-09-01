@@ -6,7 +6,7 @@ import pytest
 import pytest_asyncio
 from typing import AsyncGenerator, Dict, Any
 from uuid import uuid4
-from datetime import datetime, timedelta
+from datetime import timedelta
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import AsyncMock, Mock
@@ -18,7 +18,6 @@ os.environ["REDIS_URL"] = "redis://localhost:6379/15"
 os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-testing-only"
 os.environ["OPENAI_API_KEY"] = "test-openai-key"
 
-from app.core.config import settings
 from app.core.security import security_service
 from app.domain.entities import Deck, DeckStatus, Slide, DeckEvent
 from app.infrastructure.db.models import Base

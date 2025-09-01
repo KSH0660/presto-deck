@@ -4,10 +4,10 @@ from typing import Dict, Optional, Set
 from uuid import UUID
 
 import structlog
-from fastapi import WebSocket, WebSocketDisconnect, Depends, HTTPException, Query
+from fastapi import WebSocket, WebSocketDisconnect, Depends, Query
 from starlette.websockets import WebSocketState
 
-from app.api.schemas import WebSocketMessage, SlideUpdateRequest, SlideAddRequest
+from app.api.schemas import SlideUpdateRequest, SlideAddRequest
 from app.application.services import DeckService, SlideService
 from app.core.dependencies import get_deck_service, get_slide_service
 from app.core.observability import metrics

@@ -32,7 +32,7 @@ class PostgresDeckRepository(DeckRepository):
 
             metrics.record_database_operation("create", "decks", "success")
             return deck
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("create", "decks", "error")
             raise
 
@@ -60,7 +60,7 @@ class PostgresDeckRepository(DeckRepository):
                 created_at=db_deck.created_at,
                 updated_at=db_deck.updated_at,
             )
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("get", "decks", "error")
             raise
 
@@ -92,7 +92,7 @@ class PostgresDeckRepository(DeckRepository):
                 )
                 for db_deck in db_decks
             ]
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("list", "decks", "error")
             raise
 
@@ -119,7 +119,7 @@ class PostgresDeckRepository(DeckRepository):
             return deck
         except ValueError:
             raise
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("update", "decks", "error")
             raise
 
@@ -139,7 +139,7 @@ class PostgresDeckRepository(DeckRepository):
 
             metrics.record_database_operation("delete", "decks", "success")
             return True
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("delete", "decks", "error")
             raise
 
@@ -152,7 +152,7 @@ class PostgresDeckRepository(DeckRepository):
 
             metrics.record_database_operation("exists", "decks", "success")
             return count > 0
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("exists", "decks", "error")
             raise
 
@@ -167,7 +167,7 @@ class PostgresDeckRepository(DeckRepository):
 
             metrics.record_database_operation("ownership_check", "decks", "success")
             return count > 0
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("ownership_check", "decks", "error")
             raise
 
@@ -192,7 +192,7 @@ class PostgresSlideRepository(SlideRepository):
 
             metrics.record_database_operation("create", "slides", "success")
             return slide
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("create", "slides", "error")
             raise
 
@@ -217,7 +217,7 @@ class PostgresSlideRepository(SlideRepository):
                 created_at=db_slide.created_at,
                 updated_at=db_slide.updated_at,
             )
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("get", "slides", "error")
             raise
 
@@ -244,7 +244,7 @@ class PostgresSlideRepository(SlideRepository):
                 )
                 for db_slide in db_slides
             ]
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("list", "slides", "error")
             raise
 
@@ -292,7 +292,7 @@ class PostgresSlideRepository(SlideRepository):
 
             metrics.record_database_operation("delete", "slides", "success")
             return True
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("delete", "slides", "error")
             raise
 
@@ -311,7 +311,7 @@ class PostgresSlideRepository(SlideRepository):
 
             metrics.record_database_operation("delete_by_deck", "slides", "success")
             return count
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("delete_by_deck", "slides", "error")
             raise
 
@@ -326,7 +326,7 @@ class PostgresSlideRepository(SlideRepository):
 
             metrics.record_database_operation("max_order", "slides", "success")
             return max_order or 0
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("max_order", "slides", "error")
             raise
 
@@ -353,7 +353,7 @@ class PostgresEventRepository(EventRepository):
 
             metrics.record_database_operation("create", "deck_events", "success")
             return event
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("create", "deck_events", "error")
             raise
 
@@ -386,7 +386,7 @@ class PostgresEventRepository(EventRepository):
                 )
                 for db_event in db_events
             ]
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("list", "deck_events", "error")
             raise
 
@@ -403,6 +403,6 @@ class PostgresEventRepository(EventRepository):
                 "latest_version", "deck_events", "success"
             )
             return latest_version or 0
-        except Exception as e:
+        except Exception:
             metrics.record_database_operation("latest_version", "deck_events", "error")
             raise

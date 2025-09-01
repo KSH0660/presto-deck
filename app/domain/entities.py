@@ -1,6 +1,6 @@
 from datetime import datetime, UTC
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, model_validator
@@ -25,9 +25,9 @@ class Deck(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def sync_timestamps(self):
-        if hasattr(self, '_initial_creation') and self._initial_creation:
+        if hasattr(self, "_initial_creation") and self._initial_creation:
             return self
         # If both timestamps are default (very close to each other), sync them
         if abs((self.created_at - self.updated_at).total_seconds()) < 0.01:
@@ -86,16 +86,18 @@ class Slide(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def sync_timestamps(self):
-        if hasattr(self, '_initial_creation') and self._initial_creation:
+        if hasattr(self, "_initial_creation") and self._initial_creation:
             return self
         # If both timestamps are default (very close to each other), sync them
         if abs((self.created_at - self.updated_at).total_seconds()) < 0.01:
             self.updated_at = self.created_at
         return self
 
-    def update_content(self, html_content: str, presenter_notes: Optional[str] = None) -> None:
+    def update_content(
+        self, html_content: str, presenter_notes: Optional[str] = None
+    ) -> None:
         self.html_content = html_content
         if presenter_notes is not None:
             self.presenter_notes = presenter_notes

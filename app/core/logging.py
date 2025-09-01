@@ -11,22 +11,22 @@ from app.core.config import settings
 
 def setup_logging() -> None:
     """Configure structured logging with OpenTelemetry integration."""
-    
+
     # Configure stdlib logging
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,
         level=getattr(logging, settings.log_level.upper()),
     )
-    
+
     # Silence noisy loggers
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
-    
+
     # OpenTelemetry logging instrumentation
     LoggingInstrumentor().instrument(set_logging_format=True)
-    
+
     # Configure structlog
     processors = [
         structlog.contextvars.merge_contextvars,
@@ -34,14 +34,16 @@ def setup_logging() -> None:
         structlog.processors.TimeStamper(fmt="iso"),
         add_trace_info,
     ]
-    
+
     if settings.log_format == "json":
         processors.append(structlog.processors.JSONRenderer())
     else:
-        processors.extend([
-            structlog.dev.ConsoleRenderer(colors=True),
-        ])
-    
+        processors.extend(
+            [
+                structlog.dev.ConsoleRenderer(colors=True),
+            ]
+        )
+
     structlog.configure(
         processors=processors,
         wrapper_class=structlog.make_filtering_bound_logger(
@@ -52,7 +54,9 @@ def setup_logging() -> None:
     )
 
 
-def add_trace_info(logger: Any, method_name: str, event_dict: Dict[str, Any]) -> Dict[str, Any]:
+def add_trace_info(
+    logger: Any, method_name: str, event_dict: Dict[str, Any]
+) -> Dict[str, Any]:
     """Add OpenTelemetry trace information to log records."""
     span = trace.get_current_span()
     if span and span.get_span_context().is_valid:

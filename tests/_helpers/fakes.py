@@ -20,11 +20,13 @@ class FakeDeckRepository(DeckRepository):
     async def get_by_id(self, deck_id: UUID) -> Optional[Deck]:
         return self._decks.get(deck_id)
 
-    async def get_by_user_id(self, user_id: str, limit: int = 10, offset: int = 0) -> List[Deck]:
+    async def get_by_user_id(
+        self, user_id: str, limit: int = 10, offset: int = 0
+    ) -> List[Deck]:
         user_decks = [deck for deck in self._decks.values() if deck.user_id == user_id]
         # Sort by created_at descending (newest first)
         user_decks.sort(key=lambda x: x.created_at, reverse=True)
-        return user_decks[offset:offset + limit]
+        return user_decks[offset : offset + limit]
 
     async def update(self, deck: Deck) -> Deck:
         if deck.id not in self._decks:
@@ -60,7 +62,9 @@ class FakeSlideRepository(SlideRepository):
         return self._slides.get(slide_id)
 
     async def get_by_deck_id(self, deck_id: UUID) -> List[Slide]:
-        deck_slides = [slide for slide in self._slides.values() if slide.deck_id == deck_id]
+        deck_slides = [
+            slide for slide in self._slides.values() if slide.deck_id == deck_id
+        ]
         # Sort by slide_order
         deck_slides.sort(key=lambda x: x.slide_order)
         return deck_slides
@@ -78,8 +82,11 @@ class FakeSlideRepository(SlideRepository):
         return False
 
     async def delete_by_deck_id(self, deck_id: UUID) -> int:
-        slides_to_delete = [slide_id for slide_id, slide in self._slides.items() 
-                           if slide.deck_id == deck_id]
+        slides_to_delete = [
+            slide_id
+            for slide_id, slide in self._slides.items()
+            if slide.deck_id == deck_id
+        ]
         for slide_id in slides_to_delete:
             del self._slides[slide_id]
         return len(slides_to_delete)
@@ -104,9 +111,14 @@ class FakeEventRepository(EventRepository):
         self.events.append(event)
         return event
 
-    async def get_by_deck_id(self, deck_id: UUID, from_version: int = 0) -> List[DeckEvent]:
-        deck_events = [event for event in self.events 
-                      if event.deck_id == deck_id and event.version > from_version]
+    async def get_by_deck_id(
+        self, deck_id: UUID, from_version: int = 0
+    ) -> List[DeckEvent]:
+        deck_events = [
+            event
+            for event in self.events
+            if event.deck_id == deck_id and event.version > from_version
+        ]
         # Sort by version
         deck_events.sort(key=lambda x: x.version)
         return deck_events

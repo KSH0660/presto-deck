@@ -1,8 +1,7 @@
-from typing import List, Optional
+from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import JSONResponse
 
 from app.api.schemas import (
     DeckCreationRequest,
@@ -11,10 +10,12 @@ from app.api.schemas import (
     DeckListResponse,
     CancellationResponse,
     SlideResponse,
-    ErrorResponse,
 )
-from app.application.services import DeckService, SlideService
-from app.core.dependencies import get_deck_service, get_slide_service, get_current_user_id
+from app.application.services import DeckService
+from app.core.dependencies import (
+    get_deck_service,
+    get_current_user_id,
+)
 from app.core.observability import metrics, trace_async_operation
 from app.domain.exceptions import (
     DeckNotFoundException,
@@ -35,15 +36,15 @@ async def create_deck(
     async with trace_async_operation("api_create_deck", user_id=user_id):
         try:
             deck = await deck_service.create_deck(request, user_id)
-            
+
             metrics.record_http_request("POST", "/api/v1/decks", 202, 0.0)
-            
+
             return DeckCreationResponse(
                 deck_id=deck.id,
                 status=deck.status,
-                message="Deck creation started successfully"
+                message="Deck creation started successfully",
             )
-            
+
         except Exception as e:
             metrics.record_http_request("POST", "/api/v1/decks", 500, 0.0)
             raise HTTPException(status_code=500, detail=str(e))
@@ -56,10 +57,12 @@ async def get_deck(
     deck_service: DeckService = Depends(get_deck_service),
 ) -> DeckResponse:
     """Get deck details with all slides."""
-    async with trace_async_operation("api_get_deck", deck_id=str(deck_id), user_id=user_id):
+    async with trace_async_operation(
+        "api_get_deck", deck_id=str(deck_id), user_id=user_id
+    ):
         try:
             deck, slides = await deck_service.get_deck_with_slides(deck_id, user_id)
-            
+
             slide_responses = [
                 SlideResponse(
                     id=slide.id,
@@ -72,9 +75,9 @@ async def get_deck(
                 )
                 for slide in slides
             ]
-            
+
             metrics.record_http_request("GET", f"/api/v1/decks/{deck_id}", 200, 0.0)
-            
+
             return DeckResponse(
                 id=deck.id,
                 user_id=deck.user_id,
@@ -86,7 +89,7 @@ async def get_deck(
                 created_at=deck.created_at,
                 updated_at=deck.updated_at,
             )
-            
+
         except DeckNotFoundException:
             metrics.record_http_request("GET", f"/api/v1/decks/{deck_id}", 404, 0.0)
             raise HTTPException(status_code=404, detail=f"Deck {deck_id} not found")
@@ -109,7 +112,7 @@ async def list_decks(
     async with trace_async_operation("api_list_decks", user_id=user_id):
         try:
             decks = await deck_service.list_decks(user_id, limit, offset)
-            
+
             # Get slide counts for each deck (could be optimized with a single query)
             deck_responses = []
             for deck in decks:
@@ -124,10 +127,10 @@ async def list_decks(
                         updated_at=deck.updated_at,
                     )
                 )
-            
+
             metrics.record_http_request("GET", "/api/v1/decks", 200, 0.0)
             return deck_responses
-            
+
         except Exception as e:
             metrics.record_http_request("GET", "/api/v1/decks", 500, 0.0)
             raise HTTPException(status_code=500, detail=str(e))
@@ -140,29 +143,41 @@ async def cancel_deck_generation(
     deck_service: DeckService = Depends(get_deck_service),
 ) -> CancellationResponse:
     """Cancel ongoing deck generation."""
-    async with trace_async_operation("api_cancel_deck", deck_id=str(deck_id), user_id=user_id):
+    async with trace_async_operation(
+        "api_cancel_deck", deck_id=str(deck_id), user_id=user_id
+    ):
         try:
             deck = await deck_service.cancel_deck_generation(deck_id, user_id)
-            
-            metrics.record_http_request("POST", f"/api/v1/decks/{deck_id}/cancel", 202, 0.0)
-            
+
+            metrics.record_http_request(
+                "POST", f"/api/v1/decks/{deck_id}/cancel", 202, 0.0
+            )
+
             return CancellationResponse(
                 message="Deck generation cancellation requested",
                 deck_id=deck_id,
                 status=deck.status,
             )
-            
+
         except DeckNotFoundException:
-            metrics.record_http_request("POST", f"/api/v1/decks/{deck_id}/cancel", 404, 0.0)
+            metrics.record_http_request(
+                "POST", f"/api/v1/decks/{deck_id}/cancel", 404, 0.0
+            )
             raise HTTPException(status_code=404, detail=f"Deck {deck_id} not found")
         except UnauthorizedAccessException:
-            metrics.record_http_request("POST", f"/api/v1/decks/{deck_id}/cancel", 403, 0.0)
+            metrics.record_http_request(
+                "POST", f"/api/v1/decks/{deck_id}/cancel", 403, 0.0
+            )
             raise HTTPException(status_code=403, detail="Access denied")
         except InvalidDeckStatusException as e:
-            metrics.record_http_request("POST", f"/api/v1/decks/{deck_id}/cancel", 400, 0.0)
+            metrics.record_http_request(
+                "POST", f"/api/v1/decks/{deck_id}/cancel", 400, 0.0
+            )
             raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
-            metrics.record_http_request("POST", f"/api/v1/decks/{deck_id}/cancel", 500, 0.0)
+            metrics.record_http_request(
+                "POST", f"/api/v1/decks/{deck_id}/cancel", 500, 0.0
+            )
             raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -174,10 +189,12 @@ async def get_deck_events(
     deck_service: DeckService = Depends(get_deck_service),
 ):
     """Get deck events for replay (used by WebSocket clients)."""
-    async with trace_async_operation("api_get_deck_events", deck_id=str(deck_id), user_id=user_id):
+    async with trace_async_operation(
+        "api_get_deck_events", deck_id=str(deck_id), user_id=user_id
+    ):
         try:
             events = await deck_service.get_deck_events(deck_id, user_id, from_version)
-            
+
             event_responses = [
                 {
                     "event_type": event.event_type,
@@ -188,16 +205,24 @@ async def get_deck_events(
                 }
                 for event in events
             ]
-            
-            metrics.record_http_request("GET", f"/api/v1/decks/{deck_id}/events", 200, 0.0)
+
+            metrics.record_http_request(
+                "GET", f"/api/v1/decks/{deck_id}/events", 200, 0.0
+            )
             return {"events": event_responses}
-            
+
         except DeckNotFoundException:
-            metrics.record_http_request("GET", f"/api/v1/decks/{deck_id}/events", 404, 0.0)
+            metrics.record_http_request(
+                "GET", f"/api/v1/decks/{deck_id}/events", 404, 0.0
+            )
             raise HTTPException(status_code=404, detail=f"Deck {deck_id} not found")
         except UnauthorizedAccessException:
-            metrics.record_http_request("GET", f"/api/v1/decks/{deck_id}/events", 403, 0.0)
+            metrics.record_http_request(
+                "GET", f"/api/v1/decks/{deck_id}/events", 403, 0.0
+            )
             raise HTTPException(status_code=403, detail="Access denied")
         except Exception as e:
-            metrics.record_http_request("GET", f"/api/v1/decks/{deck_id}/events", 500, 0.0)
+            metrics.record_http_request(
+                "GET", f"/api/v1/decks/{deck_id}/events", 500, 0.0
+            )
             raise HTTPException(status_code=500, detail=str(e))

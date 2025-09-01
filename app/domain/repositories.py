@@ -15,7 +15,9 @@ class DeckRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_user_id(self, user_id: str, limit: int = 10, offset: int = 0) -> List[Deck]:
+    async def get_by_user_id(
+        self, user_id: str, limit: int = 10, offset: int = 0
+    ) -> List[Deck]:
         pass
 
     @abstractmethod
@@ -71,7 +73,9 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_deck_id(self, deck_id: UUID, from_version: int = 0) -> List[DeckEvent]:
+    async def get_by_deck_id(
+        self, deck_id: UUID, from_version: int = 0
+    ) -> List[DeckEvent]:
         pass
 
     @abstractmethod

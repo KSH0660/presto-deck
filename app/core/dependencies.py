@@ -28,7 +28,7 @@ async def get_database_session() -> AsyncGenerator[AsyncSession, None]:
     """Get database session dependency."""
     if not database:
         raise HTTPException(status_code=500, detail="Database not initialized")
-    
+
     async with database.session() as session:
         yield session
 
@@ -41,28 +41,28 @@ async def get_current_user_id(authorization: str | None = Header(None)) -> str:
         # Extract token from "Bearer <token>" format
         if not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Invalid authorization header")
-        
+
         token = authorization.split(" ")[1]
         user_id = security_service.extract_user_id_from_token(token)
         return user_id
-        
+
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
 async def get_deck_service(
-    session: AsyncSession = Depends(get_database_session)
+    session: AsyncSession = Depends(get_database_session),
 ) -> DeckService:
     """Get deck service with dependencies."""
     if not redis_client or not arq_redis:
         raise HTTPException(status_code=500, detail="Redis not initialized")
-    
+
     deck_repo = PostgresDeckRepository(session)
     slide_repo = PostgresSlideRepository(session)
     event_repo = PostgresEventRepository(session)
     stream_publisher = RedisStreamPublisher(redis_client)
     cache_manager = RedisCacheManager(redis_client)
-    
+
     return DeckService(
         deck_repo=deck_repo,
         slide_repo=slide_repo,
@@ -74,17 +74,17 @@ async def get_deck_service(
 
 
 async def get_slide_service(
-    session: AsyncSession = Depends(get_database_session)
+    session: AsyncSession = Depends(get_database_session),
 ) -> SlideService:
     """Get slide service with dependencies."""
     if not redis_client or not arq_redis:
         raise HTTPException(status_code=500, detail="Redis not initialized")
-    
+
     slide_repo = PostgresSlideRepository(session)
     deck_repo = PostgresDeckRepository(session)
     event_repo = PostgresEventRepository(session)
     stream_publisher = RedisStreamPublisher(redis_client)
-    
+
     return SlideService(
         slide_repo=slide_repo,
         deck_repo=deck_repo,

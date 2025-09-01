@@ -1,7 +1,6 @@
 import asyncio
 import json
-import logging
-from typing import Any, AsyncIterator, Dict, List, Optional, Callable, Union
+from typing import Any, AsyncIterator, Dict, Optional, Callable
 from uuid import UUID
 
 import redis.asyncio as redis

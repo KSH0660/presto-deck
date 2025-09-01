@@ -46,15 +46,17 @@ class TestPostgresDeckRepository:
         """Test successful deck creation."""
         mock_session.add = Mock()
         mock_session.flush = AsyncMock()
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await deck_repository.create(sample_deck)
-        
+
         assert result == sample_deck
         mock_session.add.assert_called_once()
         mock_session.flush.assert_called_once()
         mock_metrics.assert_called_with("create", "decks", "success")
-        
+
         # Verify the model was created correctly
         call_args = mock_session.add.call_args[0][0]
         assert isinstance(call_args, DeckModel)
@@ -64,15 +66,19 @@ class TestPostgresDeckRepository:
         assert call_args.status == sample_deck.status.value
 
     @pytest.mark.asyncio
-    async def test_create_database_error(self, deck_repository, mock_session, sample_deck):
+    async def test_create_database_error(
+        self, deck_repository, mock_session, sample_deck
+    ):
         """Test deck creation with database error."""
         mock_session.add = Mock()
         mock_session.flush = AsyncMock(side_effect=SQLAlchemyError("Database error"))
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             with pytest.raises(SQLAlchemyError):
                 await deck_repository.create(sample_deck)
-        
+
         mock_metrics.assert_called_with("create", "decks", "error")
 
     @pytest.mark.asyncio
@@ -88,15 +94,17 @@ class TestPostgresDeckRepository:
         mock_db_deck.deck_plan = sample_deck.deck_plan
         mock_db_deck.created_at = sample_deck.created_at
         mock_db_deck.updated_at = sample_deck.updated_at
-        
+
         # Mock query result
         mock_result = Mock()
         mock_result.scalar_one_or_none.return_value = mock_db_deck
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await deck_repository.get_by_id(sample_deck.id)
-        
+
         assert result is not None
         assert result.id == sample_deck.id
         assert result.user_id == sample_deck.user_id
@@ -110,24 +118,28 @@ class TestPostgresDeckRepository:
         mock_result = Mock()
         mock_result.scalar_one_or_none.return_value = None
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
+
         result = await deck_repository.get_by_id(uuid4())
-        
+
         assert result is None
 
     @pytest.mark.asyncio
     async def test_get_by_id_database_error(self, deck_repository, mock_session):
         """Test getting deck by ID with database error."""
         mock_session.execute = AsyncMock(side_effect=SQLAlchemyError("Database error"))
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             with pytest.raises(SQLAlchemyError):
                 await deck_repository.get_by_id(uuid4())
-        
+
         mock_metrics.assert_called_with("get", "decks", "error")
 
     @pytest.mark.asyncio
-    async def test_get_by_user_id_success(self, deck_repository, mock_session, test_user_id):
+    async def test_get_by_user_id_success(
+        self, deck_repository, mock_session, test_user_id
+    ):
         """Test getting decks by user ID."""
         # Create mock database models
         mock_decks = []
@@ -142,31 +154,39 @@ class TestPostgresDeckRepository:
             mock_deck.created_at = datetime.now()
             mock_deck.updated_at = datetime.now()
             mock_decks.append(mock_deck)
-        
+
         # Mock query result
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = mock_decks
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
-            result = await deck_repository.get_by_user_id(test_user_id, limit=5, offset=0)
-        
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
+            result = await deck_repository.get_by_user_id(
+                test_user_id, limit=5, offset=0
+            )
+
         assert len(result) == 3
         for i, deck in enumerate(result):
             assert deck.title == f"Deck {i+1}"
             assert deck.user_id == test_user_id
-        
+
         mock_metrics.assert_called_with("list", "decks", "success")
 
     @pytest.mark.asyncio
-    async def test_get_by_user_id_database_error(self, deck_repository, mock_session, test_user_id):
+    async def test_get_by_user_id_database_error(
+        self, deck_repository, mock_session, test_user_id
+    ):
         """Test getting decks by user ID with database error."""
         mock_session.execute = AsyncMock(side_effect=SQLAlchemyError("Database error"))
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             with pytest.raises(SQLAlchemyError):
                 await deck_repository.get_by_user_id(test_user_id)
-        
+
         mock_metrics.assert_called_with("list", "decks", "error")
 
     @pytest.mark.asyncio
@@ -178,15 +198,17 @@ class TestPostgresDeckRepository:
         mock_result.scalar_one_or_none.return_value = mock_db_deck
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session.flush = AsyncMock()
-        
+
         # Update deck properties
         sample_deck.title = "Updated Title"
         sample_deck.status = DeckStatus.COMPLETED
         sample_deck.version = 2
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await deck_repository.update(sample_deck)
-        
+
         assert result == sample_deck
         assert mock_db_deck.title == "Updated Title"
         assert mock_db_deck.status == DeckStatus.COMPLETED.value
@@ -200,23 +222,29 @@ class TestPostgresDeckRepository:
         mock_result = Mock()
         mock_result.scalar_one_or_none.return_value = None
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             with pytest.raises(ValueError) as exc:
                 await deck_repository.update(sample_deck)
-        
+
         assert f"Deck with ID {sample_deck.id} not found" in str(exc.value)
         mock_metrics.assert_called_with("update", "decks", "not_found")
 
     @pytest.mark.asyncio
-    async def test_update_database_error(self, deck_repository, mock_session, sample_deck):
+    async def test_update_database_error(
+        self, deck_repository, mock_session, sample_deck
+    ):
         """Test deck update with database error."""
         mock_session.execute = AsyncMock(side_effect=SQLAlchemyError("Database error"))
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             with pytest.raises(SQLAlchemyError):
                 await deck_repository.update(sample_deck)
-        
+
         mock_metrics.assert_called_with("update", "decks", "error")
 
     @pytest.mark.asyncio
@@ -229,10 +257,12 @@ class TestPostgresDeckRepository:
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session.delete = AsyncMock()
         mock_session.flush = AsyncMock()
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await deck_repository.delete(deck_id)
-        
+
         assert result is True
         mock_session.delete.assert_called_once_with(mock_db_deck)
         mock_session.flush.assert_called_once()
@@ -245,10 +275,12 @@ class TestPostgresDeckRepository:
         mock_result = Mock()
         mock_result.scalar_one_or_none.return_value = None
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await deck_repository.delete(deck_id)
-        
+
         assert result is False
         mock_metrics.assert_called_with("delete", "decks", "not_found")
 
@@ -257,11 +289,13 @@ class TestPostgresDeckRepository:
         """Test deck deletion with database error."""
         deck_id = uuid4()
         mock_session.execute = AsyncMock(side_effect=SQLAlchemyError("Database error"))
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             with pytest.raises(SQLAlchemyError):
                 await deck_repository.delete(deck_id)
-        
+
         mock_metrics.assert_called_with("delete", "decks", "error")
 
     @pytest.mark.asyncio
@@ -271,10 +305,12 @@ class TestPostgresDeckRepository:
         mock_result = Mock()
         mock_result.scalar.return_value = 1
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await deck_repository.exists(deck_id)
-        
+
         assert result is True
         mock_metrics.assert_called_with("exists", "decks", "success")
 
@@ -285,9 +321,9 @@ class TestPostgresDeckRepository:
         mock_result = Mock()
         mock_result.scalar.return_value = 0
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
+
         result = await deck_repository.exists(deck_id)
-        
+
         assert result is False
 
     @pytest.mark.asyncio
@@ -295,49 +331,61 @@ class TestPostgresDeckRepository:
         """Test deck existence check with database error."""
         deck_id = uuid4()
         mock_session.execute = AsyncMock(side_effect=SQLAlchemyError("Database error"))
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             with pytest.raises(SQLAlchemyError):
                 await deck_repository.exists(deck_id)
-        
+
         mock_metrics.assert_called_with("exists", "decks", "error")
 
     @pytest.mark.asyncio
-    async def test_is_owned_by_user_true(self, deck_repository, mock_session, test_user_id):
+    async def test_is_owned_by_user_true(
+        self, deck_repository, mock_session, test_user_id
+    ):
         """Test ownership check when user owns deck."""
         deck_id = uuid4()
         mock_result = Mock()
         mock_result.scalar.return_value = 1
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await deck_repository.is_owned_by_user(deck_id, test_user_id)
-        
+
         assert result is True
         mock_metrics.assert_called_with("ownership_check", "decks", "success")
 
     @pytest.mark.asyncio
-    async def test_is_owned_by_user_false(self, deck_repository, mock_session, test_user_id):
+    async def test_is_owned_by_user_false(
+        self, deck_repository, mock_session, test_user_id
+    ):
         """Test ownership check when user doesn't own deck."""
         deck_id = uuid4()
         mock_result = Mock()
         mock_result.scalar.return_value = 0
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
+
         result = await deck_repository.is_owned_by_user(deck_id, test_user_id)
-        
+
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_is_owned_by_user_database_error(self, deck_repository, mock_session, test_user_id):
+    async def test_is_owned_by_user_database_error(
+        self, deck_repository, mock_session, test_user_id
+    ):
         """Test ownership check with database error."""
         deck_id = uuid4()
         mock_session.execute = AsyncMock(side_effect=SQLAlchemyError("Database error"))
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             with pytest.raises(SQLAlchemyError):
                 await deck_repository.is_owned_by_user(deck_id, test_user_id)
-        
+
         mock_metrics.assert_called_with("ownership_check", "decks", "error")
 
 
@@ -370,15 +418,17 @@ class TestPostgresSlideRepository:
         """Test successful slide creation."""
         mock_session.add = Mock()
         mock_session.flush = AsyncMock()
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await slide_repository.create(sample_slide)
-        
+
         assert result == sample_slide
         mock_session.add.assert_called_once()
         mock_session.flush.assert_called_once()
         mock_metrics.assert_called_with("create", "slides", "success")
-        
+
         # Verify the model was created correctly
         call_args = mock_session.add.call_args[0][0]
         assert isinstance(call_args, SlideModel)
@@ -388,15 +438,19 @@ class TestPostgresSlideRepository:
         assert call_args.html_content == sample_slide.html_content
 
     @pytest.mark.asyncio
-    async def test_create_database_error(self, slide_repository, mock_session, sample_slide):
+    async def test_create_database_error(
+        self, slide_repository, mock_session, sample_slide
+    ):
         """Test slide creation with database error."""
         mock_session.add = Mock()
         mock_session.flush = AsyncMock(side_effect=SQLAlchemyError("Database error"))
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             with pytest.raises(SQLAlchemyError):
                 await slide_repository.create(sample_slide)
-        
+
         mock_metrics.assert_called_with("create", "slides", "error")
 
     @pytest.mark.asyncio
@@ -411,15 +465,17 @@ class TestPostgresSlideRepository:
         mock_db_slide.presenter_notes = sample_slide.presenter_notes
         mock_db_slide.created_at = sample_slide.created_at
         mock_db_slide.updated_at = sample_slide.updated_at
-        
+
         # Mock query result
         mock_result = Mock()
         mock_result.scalar_one_or_none.return_value = mock_db_slide
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await slide_repository.get_by_id(sample_slide.id)
-        
+
         assert result is not None
         assert result.id == sample_slide.id
         assert result.deck_id == sample_slide.deck_id
@@ -433,16 +489,16 @@ class TestPostgresSlideRepository:
         mock_result = Mock()
         mock_result.scalar_one_or_none.return_value = None
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
+
         result = await slide_repository.get_by_id(uuid4())
-        
+
         assert result is None
 
     @pytest.mark.asyncio
     async def test_get_by_deck_id_success(self, slide_repository, mock_session):
         """Test getting slides by deck ID."""
         deck_id = uuid4()
-        
+
         # Create mock database models
         mock_slides = []
         for i in range(3):
@@ -455,20 +511,22 @@ class TestPostgresSlideRepository:
             mock_slide.created_at = datetime.now()
             mock_slide.updated_at = datetime.now()
             mock_slides.append(mock_slide)
-        
+
         # Mock query result
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = mock_slides
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await slide_repository.get_by_deck_id(deck_id)
-        
+
         assert len(result) == 3
         for i, slide in enumerate(result):
             assert slide.slide_order == i + 1
             assert slide.deck_id == deck_id
-        
+
         mock_metrics.assert_called_with("list", "slides", "success")
 
     @pytest.mark.asyncio
@@ -480,14 +538,16 @@ class TestPostgresSlideRepository:
         mock_result.scalar_one_or_none.return_value = mock_db_slide
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session.flush = AsyncMock()
-        
+
         # Update slide properties
         sample_slide.html_content = "<h1>Updated Content</h1>"
         sample_slide.presenter_notes = "Updated notes"
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await slide_repository.update(sample_slide)
-        
+
         assert result == sample_slide
         assert mock_db_slide.html_content == "<h1>Updated Content</h1>"
         assert mock_db_slide.presenter_notes == "Updated notes"
@@ -500,11 +560,13 @@ class TestPostgresSlideRepository:
         mock_result = Mock()
         mock_result.scalar_one_or_none.return_value = None
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             with pytest.raises(ValueError) as exc:
                 await slide_repository.update(sample_slide)
-        
+
         assert f"Slide with ID {sample_slide.id} not found" in str(exc.value)
         mock_metrics.assert_called_with("update", "slides", "not_found")
 
@@ -518,10 +580,12 @@ class TestPostgresSlideRepository:
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session.delete = AsyncMock()
         mock_session.flush = AsyncMock()
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await slide_repository.delete(slide_id)
-        
+
         assert result is True
         mock_session.delete.assert_called_once_with(mock_db_slide)
         mock_session.flush.assert_called_once()
@@ -534,10 +598,12 @@ class TestPostgresSlideRepository:
         mock_result = Mock()
         mock_result.scalar_one_or_none.return_value = None
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await slide_repository.delete(slide_id)
-        
+
         assert result is False
         mock_metrics.assert_called_with("delete", "slides", "not_found")
 
@@ -545,7 +611,7 @@ class TestPostgresSlideRepository:
     async def test_delete_by_deck_id_success(self, slide_repository, mock_session):
         """Test deleting all slides for a deck."""
         deck_id = uuid4()
-        
+
         # Create mock slides
         mock_slides = [Mock(spec=SlideModel) for _ in range(3)]
         mock_result = Mock()
@@ -553,10 +619,12 @@ class TestPostgresSlideRepository:
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session.delete = AsyncMock()
         mock_session.flush = AsyncMock()
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await slide_repository.delete_by_deck_id(deck_id)
-        
+
         assert result == 3  # Number of deleted slides
         assert mock_session.delete.call_count == 3
         mock_session.flush.assert_called_once()
@@ -569,10 +637,12 @@ class TestPostgresSlideRepository:
         mock_result = Mock()
         mock_result.scalar.return_value = 5
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await slide_repository.get_max_order(deck_id)
-        
+
         assert result == 5
         mock_metrics.assert_called_with("max_order", "slides", "success")
 
@@ -583,9 +653,9 @@ class TestPostgresSlideRepository:
         mock_result = Mock()
         mock_result.scalar.return_value = None
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
+
         result = await slide_repository.get_max_order(deck_id)
-        
+
         assert result == 0
 
 
@@ -618,18 +688,21 @@ class TestPostgresEventRepository:
         # Create mock database model with generated ID
         mock_db_event = Mock(spec=DeckEventModel)
         mock_db_event.id = 123
-        
+
         mock_session.add = Mock()
         mock_session.flush = AsyncMock()
-        
+
         # Mock the add method to set the db model
         def mock_add(obj):
             obj.id = 123
+
         mock_session.add.side_effect = mock_add
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await event_repository.create(sample_event)
-        
+
         assert result.id == 123  # ID should be set from database
         assert result.deck_id == sample_event.deck_id
         assert result.version == sample_event.version
@@ -639,22 +712,26 @@ class TestPostgresEventRepository:
         mock_metrics.assert_called_with("create", "deck_events", "success")
 
     @pytest.mark.asyncio
-    async def test_create_database_error(self, event_repository, mock_session, sample_event):
+    async def test_create_database_error(
+        self, event_repository, mock_session, sample_event
+    ):
         """Test event creation with database error."""
         mock_session.add = Mock()
         mock_session.flush = AsyncMock(side_effect=SQLAlchemyError("Database error"))
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             with pytest.raises(SQLAlchemyError):
                 await event_repository.create(sample_event)
-        
+
         mock_metrics.assert_called_with("create", "deck_events", "error")
 
     @pytest.mark.asyncio
     async def test_get_by_deck_id_success(self, event_repository, mock_session):
         """Test getting events by deck ID."""
         deck_id = uuid4()
-        
+
         # Create mock database models
         mock_events = []
         for i in range(3):
@@ -666,28 +743,32 @@ class TestPostgresEventRepository:
             mock_event.payload = {"data": f"event{i+1}"}
             mock_event.created_at = datetime.now()
             mock_events.append(mock_event)
-        
+
         # Mock query result
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = mock_events
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await event_repository.get_by_deck_id(deck_id, from_version=0)
-        
+
         assert len(result) == 3
         for i, event in enumerate(result):
             assert event.id == i + 1
             assert event.deck_id == deck_id
             assert event.version == i + 1
-        
+
         mock_metrics.assert_called_with("list", "deck_events", "success")
 
     @pytest.mark.asyncio
-    async def test_get_by_deck_id_with_from_version(self, event_repository, mock_session):
+    async def test_get_by_deck_id_with_from_version(
+        self, event_repository, mock_session
+    ):
         """Test getting events by deck ID with from_version filter."""
         deck_id = uuid4()
-        
+
         # Should only return events with version > 2
         mock_events = []
         for i in range(2, 5):  # versions 3, 4, 5
@@ -699,13 +780,13 @@ class TestPostgresEventRepository:
             mock_event.payload = {"data": f"event{i+1}"}
             mock_event.created_at = datetime.now()
             mock_events.append(mock_event)
-        
+
         mock_result = Mock()
         mock_result.scalars.return_value.all.return_value = mock_events
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
+
         result = await event_repository.get_by_deck_id(deck_id, from_version=2)
-        
+
         assert len(result) == 3
         for i, event in enumerate(result):
             assert event.version >= 3  # Should only have versions > 2
@@ -715,11 +796,13 @@ class TestPostgresEventRepository:
         """Test getting events with database error."""
         deck_id = uuid4()
         mock_session.execute = AsyncMock(side_effect=SQLAlchemyError("Database error"))
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             with pytest.raises(SQLAlchemyError):
                 await event_repository.get_by_deck_id(deck_id)
-        
+
         mock_metrics.assert_called_with("list", "deck_events", "error")
 
     @pytest.mark.asyncio
@@ -729,10 +812,12 @@ class TestPostgresEventRepository:
         mock_result = Mock()
         mock_result.scalar.return_value = 5
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             result = await event_repository.get_latest_version(deck_id)
-        
+
         assert result == 5
         mock_metrics.assert_called_with("latest_version", "deck_events", "success")
 
@@ -743,19 +828,23 @@ class TestPostgresEventRepository:
         mock_result = Mock()
         mock_result.scalar.return_value = None
         mock_session.execute = AsyncMock(return_value=mock_result)
-        
+
         result = await event_repository.get_latest_version(deck_id)
-        
+
         assert result == 0
 
     @pytest.mark.asyncio
-    async def test_get_latest_version_database_error(self, event_repository, mock_session):
+    async def test_get_latest_version_database_error(
+        self, event_repository, mock_session
+    ):
         """Test getting latest version with database error."""
         deck_id = uuid4()
         mock_session.execute = AsyncMock(side_effect=SQLAlchemyError("Database error"))
-        
-        with patch('app.core.observability.metrics.record_database_operation') as mock_metrics:
+
+        with patch(
+            "app.core.observability.metrics.record_database_operation"
+        ) as mock_metrics:
             with pytest.raises(SQLAlchemyError):
                 await event_repository.get_latest_version(deck_id)
-        
+
         mock_metrics.assert_called_with("latest_version", "deck_events", "error")
