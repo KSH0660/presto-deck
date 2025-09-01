@@ -12,7 +12,11 @@
       "Bash(psql:*)",
       "Bash(createdb:*)",
       "Bash(redis-cli:*)",
-      "Bash(createuser:*)"
+      "Bash(createuser:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(npx:*)",
+      "Bash(git checkout:*)",
+      "Bash(npm install)"
     ],
     "deny": [],
     "ask": []
