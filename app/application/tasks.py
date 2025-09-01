@@ -3,13 +3,12 @@ from typing import Any, Dict
 from uuid import UUID
 
 import structlog
-from arq import ArqRedis
 
 from app.api.schemas import Event
 from app.core.observability import metrics
 from app.core.security import html_sanitizer
-from app.domain.entities import Deck, DeckEvent, DeckStatus, Slide
-from app.domain.exceptions import DeckNotFoundException, DeckGenerationException
+from app.domain.entities import DeckEvent, DeckStatus, Slide
+from app.domain.exceptions import DeckNotFoundException
 from app.infrastructure.db.database import Database
 from app.infrastructure.db.repositories import (
     PostgresDeckRepository,
@@ -291,23 +290,31 @@ async def update_slide(
 
 async def cleanup_cancelled_decks(ctx: Dict[str, Any]) -> None:
     """Periodic cleanup of cancelled deck resources."""
-    database: Database = ctx["database"]
-    # redis_client = ctx["redis_client"]
+    database = ctx["database"]
+    _redis_client = ctx[
+        "redis_client"
+    ]  # 의도적 미사용: 앞으로 Redis 키/채널 정리 시 활용 예정
 
     logger.info("Starting cancelled deck cleanup")
 
     try:
         async with database.session() as session:
-            # deck_repo = PostgresDeckRepository(session)
+            _deck_repo = PostgresDeckRepository(
+                session
+            )  # 의도적 미사용: 추후 실제 정리 쿼리 연결
 
-            # Find decks that have been cancelled for more than 1 hour
-            # This would require additional query methods
-            # For now, just log the cleanup attempt
+            # TODO: deck_repo.get_cancelled_older_than(cutoff) 등을 구현해 실제 정리 수행
+            # TODO: _redis_client.delete(f"deck:{deck_id}:progress") 같은 키 정리
 
             logger.info("Cancelled deck cleanup completed")
-
-    except Exception as e:
-        logger.error("Cancelled deck cleanup failed", error=str(e))
+    # except SQLAlchemyError:  # 필요 시 DB 예외를 좁혀 잡기
+    #     logger.exception("DB error during cancelled deck cleanup")
+    #     raise
+    except (
+        Exception
+    ):  # noqa: BLE001  # 지금은 광범위 잡기, logger.exception으로 스택로그 남김
+        logger.exception("Cancelled deck cleanup failed")
+        raise
 
 
 # Helper functions
