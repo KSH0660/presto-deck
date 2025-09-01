@@ -2,7 +2,6 @@
 
 import os
 import asyncio
-import json
 import pytest
 import redis.asyncio as redis
 from datetime import datetime, UTC
@@ -325,8 +324,10 @@ class TestRedisStreamIntegration:
         task2.cancel()
         try:
             await asyncio.gather(task1, task2, return_exceptions=True)
-        except:
+        except asyncio.CancelledError:
             pass
+        except Exception:
+            raise
 
         # Verify events were distributed (load balanced)
         total_consumed = len(consumed_events_1) + len(consumed_events_2)

@@ -1,10 +1,8 @@
-import time
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Any
 
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.redis import RedisInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.sdk.resources import Resource
@@ -75,7 +73,7 @@ def setup_observability() -> None:
 
     # Setup tracer provider
     trace.set_tracer_provider(TracerProvider(resource=resource))
-    tracer = trace.get_tracer(__name__)
+    # tracer = trace.get_tracer(__name__)
 
     # Setup OTLP exporter if endpoint is configured
     if settings.otel_exporter_otlp_endpoint:
