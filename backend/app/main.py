@@ -13,12 +13,41 @@ from app.infra.middleware.request_context import RequestContextMiddleware
 
 settings = get_settings()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    setup_logging()
+    logger = get_logger("app")
+    logger.info(
+        "app.startup",
+        app_name=settings.app_name,
+        environment=settings.environment,
+    )
+
+    # Initialize database tables
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from app.data.models.base import Base
+
+    engine = create_async_engine(settings.database_url, echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    await engine.dispose()
+    logger.info("database.initialized")
+
+    yield  # <-- 여기서 애플리케이션이 실행됨
+
+    # Shutdown
+    logger.info("app.shutdown", app_name=settings.app_name)
+
+
 # Create FastAPI application
 app = FastAPI(
     title=settings.app_name,
     description="AI-powered presentation deck generation service",
     version="1.0.0",
     debug=settings.debug,
+    lifespan=lifespan,
 )
 
 # CORS middleware
@@ -55,23 +84,6 @@ async def health_check():
         "service": settings.app_name,
         "version": "1.0.0",
     }
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    setup_logging()
-    logger = get_logger("app")
-    logger.info(
-        "app.startup",
-        app_name=settings.app_name,
-        environment=settings.environment,
-    )
-
-    yield  # <-- 여기서 애플리케이션이 실행됨
-
-    # Shutdown
-    logger.info("app.shutdown", app_name=settings.app_name)
 
 
 if __name__ == "__main__":

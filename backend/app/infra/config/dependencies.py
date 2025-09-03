@@ -70,6 +70,15 @@ async def get_websocket_broadcaster() -> WebSocketBroadcaster:
 async def get_llm_client() -> LangChainClient:
     """Dependency for LLM client."""
     settings = get_settings()
+
+    # Use mock client in development when OPENAI_API_KEY is dummy
+    import os
+
+    if os.getenv("OPENAI_API_KEY") == "dummy-key-for-test":
+        from app.infra.llm.mock_client import MockLLMClient
+
+        return MockLLMClient()
+
     return LangChainClient(
         model_name=settings.openai_model,
         temperature=0.3,
