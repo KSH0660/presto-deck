@@ -7,8 +7,6 @@ from typing import Optional
 from uuid import UUID
 from datetime import datetime
 
-from app.domain_core.value_objects.template_type import TemplateType
-
 
 @dataclass
 class Slide:
@@ -19,7 +17,7 @@ class Slide:
     content_outline: str
     html_content: Optional[str]
     presenter_notes: str
-    template_type: TemplateType
+    template_filename: str  # Changed from TemplateType enum to string filename
     created_at: datetime
     updated_at: Optional[datetime] = None
 

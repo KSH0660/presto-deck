@@ -11,7 +11,6 @@ from app.application.use_cases.create_deck_plan import CreateDeckPlanUseCase
 from app.application.use_cases.select_template import SelectTemplateUseCase
 from app.application.use_cases.write_slide_content import WriteSlideContentUseCase
 from app.domain_core.value_objects.deck_status import DeckStatus
-from app.domain_core.value_objects.template_type import TemplateType
 from app.domain_core.entities.deck import Deck
 from app.domain_core.entities.slide import Slide
 
@@ -101,6 +100,7 @@ class TestSelectTemplateUseCase:
             "arq_client": AsyncMock(),
             "ws_broadcaster": AsyncMock(),
             "llm_client": AsyncMock(),
+            "template_catalog": Mock(),
         }
 
     @pytest.fixture
@@ -133,10 +133,52 @@ class TestSelectTemplateUseCase:
 
         mock_dependencies["deck_repo"].get_by_id = AsyncMock(return_value=mock_deck)
         mock_dependencies["deck_repo"].update = AsyncMock()
-        mock_dependencies["slide_repo"].create = AsyncMock()
+
+        # Mock slide creation with ID assignment
+        async def mock_create_slide(slide):
+            slide.id = uuid4()  # Assign ID like a real repository would
+            return slide
+
+        mock_dependencies["slide_repo"].create = AsyncMock(
+            side_effect=mock_create_slide
+        )
         mock_dependencies["event_repo"].store_event = AsyncMock()
-        mock_dependencies["llm_client"].generate_text = AsyncMock(
-            return_value="professional"
+        # Mock structured output response
+        from app.domain_core.value_objects.template_selection import (
+            DeckTemplateSelections,
+            SlideTemplateAssignment,
+        )
+
+        mock_template_selections = DeckTemplateSelections(
+            deck_theme="professional",
+            slide_assignments=[
+                SlideTemplateAssignment(
+                    slide_order=1,
+                    slide_title="Introduction",
+                    primary_template="intro_slide.html",
+                    alternative_templates=["content_slide.html"],
+                    content_adaptation_notes="Professional introduction style",
+                ),
+                SlideTemplateAssignment(
+                    slide_order=2,
+                    slide_title="Algorithms",
+                    primary_template="content_slide.html",
+                    alternative_templates=["bullet_slide.html"],
+                    content_adaptation_notes="Technical content with examples",
+                ),
+            ],
+            template_usage_summary={"intro_slide.html": 1, "content_slide.html": 1},
+        )
+        mock_dependencies["llm_client"].generate_structured = AsyncMock(
+            return_value=mock_template_selections
+        )
+
+        # Mock template catalog
+        mock_dependencies["template_catalog"].get_catalog_for_llm = Mock(
+            return_value={
+                "intro_slide.html": "Introduction slide template",
+                "content_slide.html": "Content slide template",
+            }
         )
         mock_dependencies["arq_client"].enqueue = AsyncMock(return_value="job-123")
 
@@ -150,13 +192,18 @@ class TestSelectTemplateUseCase:
         result = await use_case.execute(deck_id, deck_plan)
 
         # Assert
-        assert result["template"] == "professional"
+        assert result["deck_id"] == str(deck_id)
         assert result["slide_count"] == 2
         assert result["status"] == DeckStatus.GENERATING.value
+        assert "template_selections" in result
 
         mock_dependencies["deck_repo"].update.assert_called_once()
-        mock_dependencies["slide_repo"].create.call_count == 2  # Two slides created
-        mock_dependencies["event_repo"].store_event.call_count == 2  # Two events stored
+        assert (
+            mock_dependencies["slide_repo"].create.call_count == 2
+        )  # Two slides created
+        assert (
+            mock_dependencies["event_repo"].store_event.call_count == 2
+        )  # Two events stored
 
     @pytest.mark.asyncio
     async def test_execute_deck_not_found_raises_error(
@@ -205,6 +252,7 @@ class TestWriteSlideContentUseCase:
             "event_repo": Mock(),
             "ws_broadcaster": AsyncMock(),
             "llm_client": AsyncMock(),
+            "template_catalog": Mock(),
         }
 
     @pytest.fixture
@@ -219,7 +267,6 @@ class TestWriteSlideContentUseCase:
         deck_id = uuid4()
         slide_id = uuid4()
         content_outline = "Introduction to machine learning concepts"
-        template_type = "professional"
 
         mock_slide = Slide(
             id=slide_id,
@@ -229,7 +276,7 @@ class TestWriteSlideContentUseCase:
             content_outline=content_outline,
             html_content=None,
             presenter_notes="Welcome slide",
-            template_type=TemplateType.PROFESSIONAL,
+            template_filename="professional_slide.html",
             created_at=datetime.utcnow(),
         )
 
@@ -237,6 +284,11 @@ class TestWriteSlideContentUseCase:
         mock_dependencies["slide_repo"].update = AsyncMock()
         mock_dependencies["slide_repo"].count_incomplete_slides = AsyncMock(
             return_value=2
+        )
+
+        # Mock template catalog for WriteSlideContent test
+        mock_dependencies["template_catalog"].get_template_content = Mock(
+            return_value="<div class='slide-template'>Template content here</div>"
         )
         mock_dependencies["event_repo"].store_event = AsyncMock()
         mock_dependencies["llm_client"].generate_text = AsyncMock(
@@ -251,7 +303,13 @@ class TestWriteSlideContentUseCase:
 
         # Act
         result = await use_case.execute(
-            deck_id, slide_id, content_outline, template_type
+            deck_id=deck_id,
+            slide_id=slide_id,
+            slide_order=1,
+            content_outline=content_outline,
+            primary_template="professional_slide.html",
+            alternative_templates=["content_slide.html"],
+            adaptation_notes="Professional style presentation",
         )
 
         # Assert
@@ -274,7 +332,13 @@ class TestWriteSlideContentUseCase:
         mock_dependencies["slide_repo"].get_by_id = AsyncMock(return_value=None)
 
         with pytest.raises(ValueError, match="Slide .* not found"):
-            await use_case.execute(deck_id, slide_id, "test content", "professional")
+            await use_case.execute(
+                deck_id=deck_id,
+                slide_id=slide_id,
+                slide_order=1,
+                content_outline="test content",
+                primary_template="professional_slide.html",
+            )
 
     @pytest.mark.asyncio
     async def test_execute_slide_wrong_deck_raises_error(
@@ -293,14 +357,20 @@ class TestWriteSlideContentUseCase:
             content_outline="test",
             html_content=None,
             presenter_notes="",
-            template_type=TemplateType.MINIMAL,
+            template_filename="minimal_slide.html",
             created_at=datetime.utcnow(),
         )
 
         mock_dependencies["slide_repo"].get_by_id = AsyncMock(return_value=mock_slide)
 
         with pytest.raises(ValueError, match="does not belong to deck"):
-            await use_case.execute(deck_id, slide_id, "test content", "professional")
+            await use_case.execute(
+                deck_id=deck_id,
+                slide_id=slide_id,
+                slide_order=1,
+                content_outline="test content",
+                primary_template="professional_slide.html",
+            )
 
     @pytest.mark.asyncio
     async def test_execute_slide_already_has_content_raises_error(
@@ -318,11 +388,17 @@ class TestWriteSlideContentUseCase:
             content_outline="test",
             html_content="<h1>Existing content</h1>",  # Already has content
             presenter_notes="",
-            template_type=TemplateType.MINIMAL,
+            template_filename="minimal_slide.html",
             created_at=datetime.utcnow(),
         )
 
         mock_dependencies["slide_repo"].get_by_id = AsyncMock(return_value=mock_slide)
 
         with pytest.raises(ValueError, match="already has content"):
-            await use_case.execute(deck_id, slide_id, "test content", "professional")
+            await use_case.execute(
+                deck_id=deck_id,
+                slide_id=slide_id,
+                slide_order=1,
+                content_outline="test content",
+                primary_template="professional_slide.html",
+            )

@@ -9,7 +9,6 @@ from uuid import uuid4
 from app.domain_core.entities.deck import Deck
 from app.domain_core.entities.slide import Slide
 from app.domain_core.value_objects.deck_status import DeckStatus
-from app.domain_core.value_objects.template_type import TemplateType
 
 
 class TestDeckEntity:
@@ -156,7 +155,7 @@ class TestSlideEntity:
             content_outline="Overview of the presentation topics",
             html_content=None,
             presenter_notes="Welcome the audience",
-            template_type=TemplateType.PROFESSIONAL,
+            template_filename="professional_slide.html",
             created_at=now,
         )
 
@@ -165,7 +164,7 @@ class TestSlideEntity:
         assert slide.order == 1
         assert slide.title == "Introduction"
         assert slide.html_content is None
-        assert slide.template_type == TemplateType.PROFESSIONAL
+        assert slide.template_filename == "professional_slide.html"
 
     def test_is_complete_with_html_content(self):
         """Test slide is complete when it has HTML content."""
@@ -177,7 +176,7 @@ class TestSlideEntity:
             content_outline="test",
             html_content="<h1>Test Slide</h1><p>Content here</p>",
             presenter_notes="",
-            template_type=TemplateType.MINIMAL,
+            template_filename="content_slide.html",
             created_at=datetime.utcnow(),
         )
 
@@ -193,7 +192,7 @@ class TestSlideEntity:
             content_outline="test",
             html_content=None,
             presenter_notes="",
-            template_type=TemplateType.MINIMAL,
+            template_filename="content_slide.html",
             created_at=datetime.utcnow(),
         )
 
@@ -209,7 +208,7 @@ class TestSlideEntity:
             content_outline="test",
             html_content="   ",  # Only whitespace
             presenter_notes="",
-            template_type=TemplateType.MINIMAL,
+            template_filename="content_slide.html",
             created_at=datetime.utcnow(),
         )
 
@@ -225,7 +224,7 @@ class TestSlideEntity:
             content_outline="test",
             html_content=None,
             presenter_notes="",
-            template_type=TemplateType.MINIMAL,
+            template_filename="content_slide.html",
             created_at=datetime.utcnow(),
         )
 
@@ -243,7 +242,7 @@ class TestSlideEntity:
             content_outline="short outline",
             html_content=long_html,
             presenter_notes="",
-            template_type=TemplateType.MINIMAL,
+            template_filename="content_slide.html",
             created_at=datetime.utcnow(),
         )
 
@@ -263,7 +262,7 @@ class TestSlideEntity:
             content_outline=long_outline,
             html_content=None,
             presenter_notes="",
-            template_type=TemplateType.MINIMAL,
+            template_filename="content_slide.html",
             created_at=datetime.utcnow(),
         )
 

@@ -2,10 +2,13 @@
 LangChain client for LLM integration.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Type, TypeVar
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import StrOutputParser
+from pydantic import BaseModel
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class LangChainClient:
@@ -34,6 +37,23 @@ class LangChainClient:
         # Generate response
         response = await self.llm.ainvoke(messages)
         return self.parser.parse(response)
+
+    async def generate_structured(
+        self, prompt: str, response_model: Type[T], system_message: Optional[str] = None
+    ) -> T:
+        """Generate structured response using Pydantic model."""
+        # Use structured output with the response model
+        structured_llm = self.llm.with_structured_output(response_model)
+
+        messages = []
+        if system_message:
+            messages.append(SystemMessage(content=system_message))
+
+        messages.append(HumanMessage(content=prompt))
+
+        # Generate structured response
+        response = await structured_llm.ainvoke(messages)
+        return response
 
     async def generate_deck_plan(
         self, prompt: str, style_preferences: Dict[str, Any]

@@ -9,7 +9,7 @@ This use case handles:
 5. Checking if all slides are complete to mark deck as COMPLETED
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List
 from uuid import UUID
 from datetime import datetime
 
@@ -21,6 +21,7 @@ from app.data.repositories.slide_repository import SlideRepository
 from app.data.repositories.event_repository import EventRepository
 from app.infra.messaging.websocket_broadcaster import WebSocketBroadcaster
 from app.infra.llm.langchain_client import LangChainClient
+from app.infra.assets.template_catalog import TemplateCatalog
 from app.application.unit_of_work import UnitOfWork
 
 
@@ -33,6 +34,7 @@ class WriteSlideContentUseCase:
         event_repo: EventRepository,
         ws_broadcaster: WebSocketBroadcaster,
         llm_client: LangChainClient,
+        template_catalog: TemplateCatalog,
     ):
         self.uow = uow
         self.deck_repo = deck_repo
@@ -40,18 +42,29 @@ class WriteSlideContentUseCase:
         self.event_repo = event_repo
         self.ws_broadcaster = ws_broadcaster
         self.llm_client = llm_client
+        self.template_catalog = template_catalog
 
     async def execute(
-        self, deck_id: UUID, slide_id: UUID, content_outline: str, template_type: str
+        self,
+        deck_id: UUID,
+        slide_id: UUID,
+        slide_order: int,
+        content_outline: str,
+        primary_template: str,
+        alternative_templates: List[str] = None,
+        adaptation_notes: str = "",
     ) -> Dict[str, Any]:
         """
-        Execute slide content generation.
+        Execute slide content generation with template-based approach.
 
         Args:
             deck_id: The deck containing the slide
             slide_id: The slide to generate content for
+            slide_order: The order of the slide in the deck
             content_outline: The content outline to expand
-            template_type: The template to use for styling
+            primary_template: Primary template filename to use
+            alternative_templates: Alternative template filenames as fallbacks
+            adaptation_notes: Notes for adapting content to template
 
         Returns:
             Dict with slide_id and completion status
@@ -70,9 +83,14 @@ class WriteSlideContentUseCase:
         # 2. Domain validation
         SlideValidators.validate_content_outline(content_outline)
 
-        # 3. Generate HTML content using LLM
-        html_content = await self._generate_html_content(
-            content_outline, template_type, slide.title, slide.presenter_notes
+        # 3. Generate HTML content using LLM with template
+        html_content = await self._generate_html_content_with_template(
+            content_outline,
+            primary_template,
+            alternative_templates or [],
+            adaptation_notes,
+            slide.title,
+            slide.presenter_notes,
         )
 
         # 4. Validate and sanitize HTML
@@ -110,28 +128,105 @@ class WriteSlideContentUseCase:
             "deck_completed": deck_completed,
         }
 
-    async def _generate_html_content(
-        self, outline: str, template_type: str, title: str, presenter_notes: str
+    async def _generate_html_content_with_template(
+        self,
+        outline: str,
+        primary_template: str,
+        alternative_templates: List[str],
+        adaptation_notes: str,
+        title: str,
+        presenter_notes: str,
     ) -> str:
-        """Use LLM to generate HTML content for the slide."""
+        """Generate HTML content using actual template files as reference."""
+
+        # Get the primary template content
+        template_content = self.template_catalog.get_template_content(primary_template)
+        if not template_content:
+            # Fallback to first alternative if primary not found
+            for alt_template in alternative_templates:
+                template_content = self.template_catalog.get_template_content(
+                    alt_template
+                )
+                if template_content:
+                    primary_template = alt_template
+                    break
+
+        # If still no template found, use basic content generation
+        if not template_content:
+            return await self._generate_basic_html_content(
+                outline, title, presenter_notes
+            )
+
+        system_prompt = """
+You are an expert web designer creating HTML content for presentation slides.
+You have been provided with a template file that shows the structure and styling approach.
+
+Your task:
+1. Analyze the provided template structure and styling patterns
+2. Generate content that fits this template's design and layout
+3. Maintain the template's CSS classes and structure
+4. Adapt the content to match the template's visual approach
+
+Requirements:
+- Follow the template's HTML structure and CSS class patterns
+- Keep content engaging and professionally formatted
+- Use semantic HTML5 elements
+- No external scripts or unsafe content
+- Return only the content HTML (no <html>, <head>, or <body> tags)
+"""
+
+        user_prompt = f"""
+Generate HTML content for this slide using the provided template as a reference:
+
+**SLIDE DETAILS:**
+Title: {title}
+Content Outline: {outline}
+Presenter Notes: {presenter_notes}
+
+**TEMPLATE TO FOLLOW:**
+Template File: {primary_template}
+Template Content:
+```html
+{template_content}
+```
+
+**ADAPTATION NOTES:**
+{adaptation_notes}
+
+**INSTRUCTIONS:**
+1. Study the template structure and CSS classes
+2. Create content that fits the template's layout and design approach
+3. Replace placeholder content with the actual slide content
+4. Maintain visual consistency with the template style
+5. Ensure content is engaging and well-structured
+
+Generate only the HTML content that would fit within this template structure.
+"""
+
+        response = await self.llm_client.generate_text(user_prompt, system_prompt)
+        return response.strip()
+
+    async def _generate_basic_html_content(
+        self, outline: str, title: str, presenter_notes: str
+    ) -> str:
+        """Fallback method for basic HTML generation when no template is available."""
         html_prompt = f"""
-        Generate professional HTML content for a presentation slide with these requirements:
+Generate professional HTML content for a presentation slide:
 
-        Title: {title}
-        Content Outline: {outline}
-        Template Style: {template_type}
-        Presenter Notes: {presenter_notes}
+Title: {title}
+Content Outline: {outline}
+Presenter Notes: {presenter_notes}
 
-        Requirements:
-        - Use semantic HTML5 elements
-        - Include appropriate CSS classes for styling
-        - Make content engaging and visual
-        - Include bullet points, headings, and structure
-        - Keep it concise but comprehensive
-        - No external scripts or unsafe content
+Requirements:
+- Use semantic HTML5 elements
+- Include appropriate CSS classes for styling
+- Make content engaging and visual
+- Include bullet points, headings, and structure
+- Keep it concise but comprehensive
+- No external scripts or unsafe content
 
-        Return only the HTML content (no <html>, <head>, or <body> tags).
-        """
+Return only the HTML content (no <html>, <head>, or <body> tags).
+"""
 
         response = await self.llm_client.generate_text(html_prompt)
         return response.strip()
