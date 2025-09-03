@@ -16,7 +16,8 @@
       "Bash(npx create-next-app:*)",
       "Bash(npx:*)",
       "Bash(git checkout:*)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
