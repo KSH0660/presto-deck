@@ -3,12 +3,12 @@ Unit tests for domain entities.
 """
 
 import pytest
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from app.domain_core.entities.deck import Deck
 from app.domain_core.entities.slide import Slide
-from app.domain_core.value_objects.deck_status import DeckStatus
+from app.api.schemas import DeckStatus
 
 
 class TestDeckEntity:
@@ -16,7 +16,7 @@ class TestDeckEntity:
         """Test deck entity creation."""
         deck_id = uuid4()
         user_id = uuid4()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         deck = Deck(
             id=deck_id,
@@ -43,7 +43,7 @@ class TestDeckEntity:
             prompt="test",
             status=DeckStatus.PENDING,
             style_preferences={},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         assert deck.can_be_cancelled() is True
@@ -56,7 +56,7 @@ class TestDeckEntity:
             prompt="test",
             status=DeckStatus.PLANNING,
             style_preferences={},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         assert deck.can_be_cancelled() is True
@@ -69,7 +69,7 @@ class TestDeckEntity:
             prompt="test",
             status=DeckStatus.GENERATING,
             style_preferences={},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         assert deck.can_be_cancelled() is False
@@ -82,7 +82,7 @@ class TestDeckEntity:
             prompt="test",
             status=DeckStatus.GENERATING,
             style_preferences={},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         deck.mark_as_completed()
@@ -99,7 +99,7 @@ class TestDeckEntity:
             prompt="test",
             status=DeckStatus.PENDING,
             style_preferences={},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         with pytest.raises(
@@ -115,7 +115,7 @@ class TestDeckEntity:
             prompt="test",
             status=DeckStatus.GENERATING,
             style_preferences={},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             slide_count=5,
         )
 
@@ -132,7 +132,7 @@ class TestDeckEntity:
             prompt="test",
             status=DeckStatus.GENERATING,
             style_preferences={},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             slide_count=50,  # Already at maximum
         )
 
@@ -145,7 +145,7 @@ class TestSlideEntity:
         """Test slide entity creation."""
         slide_id = uuid4()
         deck_id = uuid4()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         slide = Slide(
             id=slide_id,
@@ -177,7 +177,7 @@ class TestSlideEntity:
             html_content="<h1>Test Slide</h1><p>Content here</p>",
             presenter_notes="",
             template_filename="content_slide.html",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         assert slide.is_complete() is True
@@ -193,7 +193,7 @@ class TestSlideEntity:
             html_content=None,
             presenter_notes="",
             template_filename="content_slide.html",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         assert slide.is_complete() is False
@@ -209,7 +209,7 @@ class TestSlideEntity:
             html_content="   ",  # Only whitespace
             presenter_notes="",
             template_filename="content_slide.html",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         assert slide.is_complete() is False
@@ -225,7 +225,7 @@ class TestSlideEntity:
             html_content=None,
             presenter_notes="",
             template_filename="content_slide.html",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         # For now, always returns True
@@ -243,7 +243,7 @@ class TestSlideEntity:
             html_content=long_html,
             presenter_notes="",
             template_filename="content_slide.html",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         summary = slide.get_content_summary()
@@ -263,7 +263,7 @@ class TestSlideEntity:
             html_content=None,
             presenter_notes="",
             template_filename="content_slide.html",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         summary = slide.get_content_summary()

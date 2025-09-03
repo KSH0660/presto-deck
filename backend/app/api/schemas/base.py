@@ -12,9 +12,19 @@ from typing import Optional, Union
 from pydantic import BaseModel, Field, HttpUrl
 from typing_extensions import Literal
 
-# Use domain DeckStatus as single source of truth
+
+# ---------- DECK STATUS ----------
+class DeckStatus(str, Enum):
+    PENDING = "pending"
+    PLANNING = "planning"
+    GENERATING = "generating"
+    EDITING = "editing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
+# ---------- EVENT TYPES ----------
 class EventType(str, Enum):
     """Types of events that can occur during deck operations."""
 

@@ -7,10 +7,10 @@ It uses structured output to generate a comprehensive deck plan with slides.
 
 from typing import Dict, Any, Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, UTC, timezone
 
 from app.domain_core.entities.slide import Slide
-from app.domain_core.value_objects.deck_status import DeckStatus
+from app.api.schemas import DeckStatus
 from app.data.repositories.deck_repository import DeckRepository
 from app.data.repositories.slide_repository import SlideRepository
 from app.data.repositories.event_repository import EventRepository
@@ -164,7 +164,7 @@ class GenerateDeckPlanUseCase:
                     content_outline=slide_outline.content,
                     presenter_notes=slide_outline.notes,
                     template_filename="content_slide.html",  # Will be updated by template selection
-                    created_at=datetime.utcnow(),
+                    created_at=datetime.now(timezone.utc),
                 )
 
                 # Save to repository
@@ -178,7 +178,7 @@ class GenerateDeckPlanUseCase:
                     "slide_id": str(created_slide.id),
                     "slide_order": slide_outline.order,
                     "title": slide_outline.title,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
                 await self.event_repo.store_event(deck_id, slide_event)
 
@@ -195,7 +195,7 @@ class GenerateDeckPlanUseCase:
             deck = await self.deck_repo.get_by_id(deck_id)
             if deck:
                 deck.status = status
-                deck.updated_at = datetime.utcnow()
+                deck.updated_at = datetime.now(timezone.utc)
                 await self.deck_repo.update(deck)
 
                 # Store status change event
@@ -205,7 +205,7 @@ class GenerateDeckPlanUseCase:
                     "old_status": deck.status.value if deck.status else None,
                     "new_status": status.value,
                     "message": message,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
                 await self.event_repo.store_event(deck_id, status_event)
 
@@ -220,7 +220,7 @@ class GenerateDeckPlanUseCase:
                     "deck_id": str(deck_id),
                     "status": status.value,
                     "message": message,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
         except Exception as e:

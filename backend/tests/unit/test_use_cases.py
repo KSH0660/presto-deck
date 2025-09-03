@@ -5,12 +5,12 @@ Unit tests for use cases with mocked dependencies.
 import pytest
 from unittest.mock import Mock, AsyncMock
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.application.use_cases.create_deck_plan import CreateDeckPlanUseCase
 from app.application.use_cases.select_template import SelectTemplateUseCase
 from app.application.use_cases.write_slide_content import WriteSlideContentUseCase
-from app.domain_core.value_objects.deck_status import DeckStatus
+from app.api.schemas import DeckStatus
 from app.domain_core.entities.deck import Deck
 from app.domain_core.entities.slide import Slide
 
@@ -128,7 +128,7 @@ class TestSelectTemplateUseCase:
             prompt="test",
             status=DeckStatus.PLANNING,
             style_preferences={},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         mock_dependencies["deck_repo"].get_by_id = AsyncMock(return_value=mock_deck)
@@ -232,7 +232,7 @@ class TestSelectTemplateUseCase:
             prompt="test",
             status=DeckStatus.PENDING,  # Should be PLANNING
             style_preferences={},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         mock_dependencies["deck_repo"].get_by_id = AsyncMock(return_value=mock_deck)
@@ -277,7 +277,7 @@ class TestWriteSlideContentUseCase:
             html_content=None,
             presenter_notes="Welcome slide",
             template_filename="professional_slide.html",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         mock_dependencies["slide_repo"].get_by_id = AsyncMock(return_value=mock_slide)
@@ -358,7 +358,7 @@ class TestWriteSlideContentUseCase:
             html_content=None,
             presenter_notes="",
             template_filename="minimal_slide.html",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         mock_dependencies["slide_repo"].get_by_id = AsyncMock(return_value=mock_slide)
@@ -389,7 +389,7 @@ class TestWriteSlideContentUseCase:
             html_content="<h1>Existing content</h1>",  # Already has content
             presenter_notes="",
             template_filename="minimal_slide.html",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         mock_dependencies["slide_repo"].get_by_id = AsyncMock(return_value=mock_slide)

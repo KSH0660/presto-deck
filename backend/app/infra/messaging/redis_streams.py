@@ -4,7 +4,7 @@ Redis Streams for event streaming and replay.
 
 from typing import Dict, Any, List, Optional
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import redis.asyncio as redis
 
 
@@ -24,7 +24,7 @@ class RedisStreamClient:
 
         # Add timestamp if not present
         if "timestamp" not in serialized_data:
-            serialized_data["timestamp"] = datetime.utcnow().isoformat()
+            serialized_data["timestamp"] = datetime.now(timezone.utc).isoformat()
 
         # Add to stream
         message_id = await self.redis_client.xadd(stream_name, serialized_data)

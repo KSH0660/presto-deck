@@ -5,9 +5,9 @@ Deck domain entity with core business rules.
 from dataclasses import dataclass
 from typing import Dict, Any, Optional
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 
-from app.domain_core.value_objects.deck_status import DeckStatus
+from app.api.schemas import DeckStatus
 from app.domain_core.value_objects.template_type import TemplateType
 
 
@@ -34,8 +34,8 @@ class Deck:
             raise ValueError("Can only complete decks that are generating")
 
         self.status = DeckStatus.COMPLETED
-        self.completed_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.completed_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
 
     def increment_slide_count(self):
         """Business rule: increment slide count when new slide is added."""
@@ -43,4 +43,4 @@ class Deck:
             raise ValueError("Maximum 50 slides per deck")
 
         self.slide_count += 1
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)

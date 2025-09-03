@@ -12,10 +12,10 @@ This use case handles:
 
 from typing import Dict, Any, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, UTC, timezone
 
 from app.domain_core.entities.slide import Slide
-from app.domain_core.value_objects.deck_status import DeckStatus
+from app.api.schemas import DeckStatus
 from app.domain_core.value_objects.template_selection import DeckTemplateSelections
 from app.domain_core.validators.deck_validators import DeckValidators
 from app.data.repositories.deck_repository import DeckRepository
@@ -91,7 +91,7 @@ class SelectTemplateUseCase:
         async with self.uow:
             # Update deck status
             deck.status = DeckStatus.GENERATING
-            deck.updated_at = datetime.utcnow()
+            deck.updated_at = datetime.now(timezone.utc)
             await self.deck_repo.update(deck)
 
             # Create slide records
@@ -103,7 +103,7 @@ class SelectTemplateUseCase:
                 "type": "PlanCompleted",
                 "deck_id": str(deck_id),
                 "plan": deck_plan,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "version": 2,
             }
             await self.event_repo.store_event(deck_id, plan_event)
@@ -111,9 +111,9 @@ class SelectTemplateUseCase:
             template_event = {
                 "type": "TemplatesSelected",
                 "deck_id": str(deck_id),
-                "template_selections": template_selections.dict(),
+                "template_selections": template_selections.model_dump(),
                 "slide_count": len(slides),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "version": 3,
             }
             await self.event_repo.store_event(deck_id, template_event)
@@ -125,7 +125,7 @@ class SelectTemplateUseCase:
 
         result = {
             "deck_id": str(deck_id),
-            "template_selections": template_selections.dict(),
+            "template_selections": template_selections.model_dump(),
             "slide_count": len(slides),
             "status": DeckStatus.GENERATING.value,
         }
@@ -210,7 +210,7 @@ Focus on matching slide content to template capabilities.
                 presenter_notes=slide_plan.get("notes", ""),
                 # Store template filename
                 template_filename=primary_template,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
             )
             slides.append(slide)
 
@@ -268,7 +268,7 @@ Focus on matching slide content to template capabilities.
                     "slide_count": len(slides),
                     "template_usage": template_selections.template_usage_summary,
                     "job_ids": job_ids,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 

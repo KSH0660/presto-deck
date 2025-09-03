@@ -5,7 +5,7 @@ SQLAlchemy model for Slide entity.
 from sqlalchemy import Column, String, Text, Integer, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from app.data.models.base import Base
@@ -67,7 +67,7 @@ class SlideModel(Base):
             "template_filename", self.template_filename
         )
         self.order = snapshot_data.get("order", self.order)
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def get_latest_version(self) -> SlideVersionModel:
         """Get the most recent version."""

@@ -16,7 +16,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 import uuid
 
@@ -132,7 +132,7 @@ class SlideVersionModel(Base):
             "presenter_notes": presenter_notes,
             "template_filename": template_filename,
             "order": order,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         snapshot.update(extra_data)
         return snapshot

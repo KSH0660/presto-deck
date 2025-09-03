@@ -6,7 +6,7 @@ from typing import Optional, List
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, func
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.data.models.slide_model import SlideModel
 from app.data.models.slide_version_model import SlideVersionModel, SlideVersionReason
@@ -150,7 +150,7 @@ class SlideRepository:
         self.session.add(version_model)
 
         slide_model.current_version = next_version_no
-        slide_model.updated_at = datetime.utcnow()
+        slide_model.updated_at = datetime.now(timezone.utc)
 
         await self.session.flush()
         self._log.info(

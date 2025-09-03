@@ -16,7 +16,7 @@ sys.path.insert(0, str(backend_dir))
 
 # Import after path setup
 try:
-    from app.domain_core.value_objects.deck_status import DeckStatus
+    from app.api.schemas import DeckStatus
     from app.domain_core.value_objects.template_type import TemplateType
 except ImportError as e:
     # This will help debug import issues

@@ -2,11 +2,11 @@
 Domain validators for slide-related business rules.
 """
 
-import bleach
+from bleach.css_sanitizer import CSSSanitizer
+from bleach.sanitizer import Cleaner
 
 
 class SlideValidators:
-    # Allowed HTML tags for slide content
     ALLOWED_TAGS = [
         "h1",
         "h2",
@@ -45,36 +45,26 @@ class SlideValidators:
         "a": ["href", "title"],
     }
 
+    cleaner = Cleaner(
+        tags=ALLOWED_TAGS,
+        attributes=ALLOWED_ATTRIBUTES,
+        css_sanitizer=CSSSanitizer(),
+    )
+
     @staticmethod
     def validate_content_outline(outline: str) -> None:
-        """Validate slide content outline meets business requirements."""
         if not outline or not outline.strip():
             raise ValueError("Slide content outline cannot be empty")
-
         if len(outline.strip()) < 5:
             raise ValueError("Slide content outline must be at least 5 characters")
-
         if len(outline) > 2000:
             raise ValueError("Slide content outline cannot exceed 2000 characters")
 
-    @staticmethod
-    def sanitize_html_content(html_content: str) -> str:
-        """Sanitize HTML content to prevent XSS attacks."""
+    @classmethod
+    def sanitize_html_content(cls, html_content: str) -> str:
         if not html_content:
             raise ValueError("HTML content cannot be empty")
-
-        # Use bleach to sanitize HTML
-        clean_html = bleach.clean(
-            html_content,
-            tags=SlideValidators.ALLOWED_TAGS,
-            attributes=SlideValidators.ALLOWED_ATTRIBUTES,
-            strip=True,
-        )
-
-        if len(clean_html.strip()) < 10:
-            raise ValueError("HTML content too short after sanitization")
-
-        return clean_html
+        return cls.cleaner.clean(html_content)
 
     @staticmethod
     def validate_slide_order(order: int, total_slides: int) -> None:

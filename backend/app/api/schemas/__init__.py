@@ -11,8 +11,10 @@ Usage:
     from app.api.schemas.deck import CreateDeckRequest, DeckStatusResponse
     from app.api.schemas.slide import SlideOut, PatchSlideRequest
     from app.api.schemas.websocket import DeckEventOut
-    from app.api.schemas.base import Pagination, DeckStatus
+    from app.api.schemas.base import Pagination
 """
+
+from __future__ import annotations
 
 # Re-export commonly used schemas for backward compatibility
 from .base import (

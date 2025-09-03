@@ -6,7 +6,7 @@ from typing import Dict, Any, List
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.data.models.event_model import EventModel
 from app.infra.config.logging_config import get_logger
@@ -23,7 +23,7 @@ class EventRepository:
             deck_id=deck_id,
             event_type=event_data["type"],
             event_data=event_data,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         self.session.add(event_model)

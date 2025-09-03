@@ -10,10 +10,10 @@ This use case handles:
 
 from typing import Dict, Any
 from uuid import UUID, uuid4
-from datetime import datetime
+from datetime import datetime, UTC, timezone
 
 from app.domain_core.entities.deck import Deck
-from app.domain_core.value_objects.deck_status import DeckStatus
+from app.api.schemas import DeckStatus
 from app.domain_core.validators.deck_validators import DeckValidators
 from app.data.repositories.deck_repository import DeckRepository
 from app.data.repositories.event_repository import EventRepository
@@ -65,7 +65,7 @@ class CreateDeckPlanUseCase:
             prompt=prompt,
             status=DeckStatus.PENDING,
             style_preferences=style_preferences or {},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         # 3. Transaction boundary - all DB operations
@@ -79,7 +79,7 @@ class CreateDeckPlanUseCase:
                 "deck_id": str(deck_id),
                 "user_id": str(user_id),
                 "prompt": prompt,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "version": 1,
             }
             await self.event_repo.store_event(deck_id, start_event)
@@ -127,7 +127,7 @@ class CreateDeckPlanUseCase:
                     "deck_id": str(deck_id),
                     "status": DeckStatus.PENDING.value,
                     "job_id": job_id,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
             self._log.info(

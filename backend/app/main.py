@@ -2,6 +2,7 @@
 FastAPI application entry point for Presto Deck API.
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -60,21 +61,20 @@ async def health_check():
     }
 
 
-# Startup and shutdown events
-@app.on_event("startup")
-async def startup_event():
-    """Initialize application on startup."""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     setup_logging()
     logger = get_logger("app")
     logger.info(
-        "app.startup", app_name=settings.app_name, environment=settings.environment
+        "app.startup",
+        app_name=settings.app_name,
+        environment=settings.environment,
     )
 
+    yield  # <-- 여기서 애플리케이션이 실행됨
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on application shutdown."""
-    logger = get_logger("app")
+    # Shutdown
     logger.info("app.shutdown", app_name=settings.app_name)
 
 

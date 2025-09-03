@@ -11,10 +11,10 @@ This use case handles:
 
 from typing import Dict, Any, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.domain_core.entities.slide import Slide
-from app.domain_core.value_objects.deck_status import DeckStatus
+from app.api.schemas import DeckStatus
 from app.domain_core.validators.slide_validators import SlideValidators
 from app.data.repositories.deck_repository import DeckRepository
 from app.data.repositories.slide_repository import SlideRepository
@@ -109,7 +109,7 @@ class WriteSlideContentUseCase:
         # 5. Update slide in transaction
         async with self.uow:
             slide.html_content = sanitized_html
-            slide.updated_at = datetime.utcnow()
+            slide.updated_at = datetime.now(timezone.utc)
             await self.slide_repo.update(slide)
 
             # Store slide completed event
@@ -118,7 +118,7 @@ class WriteSlideContentUseCase:
                 "deck_id": str(deck_id),
                 "slide_id": str(slide_id),
                 "slide_order": slide.order,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
             await self.event_repo.store_event(deck_id, slide_event)
 
@@ -273,7 +273,7 @@ Generate only the HTML content that would fit within this template structure.
                         "type": "DeckCompleted",
                         "deck_id": str(deck_id),
                         "total_slides": await self.slide_repo.count_slides(deck_id),
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                     await self.event_repo.store_event(deck_id, completion_event)
 
@@ -296,7 +296,7 @@ Generate only the HTML content that would fit within this template structure.
                     "slide_id": str(slide.id),
                     "slide_order": slide.order,
                     "title": slide.title,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             )
 
@@ -307,7 +307,7 @@ Generate only the HTML content that would fit within this template structure.
                     message={
                         "type": "DeckCompleted",
                         "deck_id": str(deck_id),
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                     },
                 )
 

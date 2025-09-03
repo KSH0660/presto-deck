@@ -95,7 +95,7 @@ class DeckRepository:
 
     def _to_entity(self, model: DeckModel) -> Deck:
         """Convert SQLAlchemy model to domain entity."""
-        from app.domain_core.value_objects.deck_status import DeckStatus
+        from app.api.schemas import DeckStatus
         from app.domain_core.value_objects.template_type import TemplateType
 
         return Deck(

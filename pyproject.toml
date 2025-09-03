@@ -15,7 +15,6 @@ dependencies = [
     "uvicorn>=0.35.0",
     "sqlalchemy>=2.0.25",
     "alembic>=1.13.1",
-    "psycopg[binary]>=3.1.16",
     "asyncpg>=0.29.0",
     "arq>=0.26.0",
     "python-jose[cryptography]>=3.3.0",
@@ -37,10 +36,10 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "python-dotenv>=1.0.0",
     "opentelemetry-instrumentation-logging>=0.57b0",
-    "psycopg2>=2.9.10",
     "aiosqlite>=0.21.0",
     "langchain-community>=0.3.29",
     "pre-commit>=4.3.0",
+    "tinycss2>=1.4.0",
 ]
 
 [tool.pytest.ini_options]

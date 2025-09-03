@@ -393,7 +393,7 @@ async def insert_slide(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         from app.domain_core.entities.slide import Slide
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         bind_context(user_id=str(current_user_id), deck_id=str(deck_id))
         log.info(
@@ -451,7 +451,7 @@ async def insert_slide(
             html_content=None,
             presenter_notes="",
             template_filename=template_filename,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         created_slide = await slide_repo.create(new_slide)
