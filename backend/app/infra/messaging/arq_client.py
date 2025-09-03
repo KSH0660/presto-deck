@@ -46,3 +46,16 @@ class ARQClient:
         if self._pool:
             await self._pool.close()
             self._pool = None
+
+
+async def get_arq_client() -> ARQClient:
+    """Dependency for ARQ client."""
+    from app.infra.config.settings import get_settings
+
+    settings = get_settings()
+    redis_settings = RedisSettings(
+        host=settings.arq_redis_host,
+        port=settings.arq_redis_port,
+        database=settings.arq_redis_database,
+    )
+    return ARQClient(redis_settings)
