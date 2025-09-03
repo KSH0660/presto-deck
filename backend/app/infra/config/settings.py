@@ -8,7 +8,7 @@ from pydantic import Field
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env", case_sensitive=False, extra="ignore"
+        env_file=[".env", "../.env"], case_sensitive=False, extra="ignore"
     )
 
     # Application

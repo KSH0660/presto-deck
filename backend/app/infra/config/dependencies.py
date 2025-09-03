@@ -72,9 +72,7 @@ async def get_llm_client() -> LangChainClient:
     settings = get_settings()
 
     # Use mock client in development when OPENAI_API_KEY is dummy
-    import os
-
-    if os.getenv("OPENAI_API_KEY") == "dummy-key-for-test":
+    if settings.openai_api_key == "dummy-key-for-test":
         from app.infra.llm.mock_client import MockLLMClient
 
         return MockLLMClient()
