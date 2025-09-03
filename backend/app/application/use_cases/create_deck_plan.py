@@ -10,7 +10,7 @@ This use case handles:
 
 from typing import Dict, Any
 from uuid import UUID, uuid4
-from datetime import datetime, UTC, timezone
+from datetime import datetime, UTC
 
 from app.domain_core.entities.deck import Deck
 from app.api.schemas import DeckStatus
@@ -65,7 +65,7 @@ class CreateDeckPlanUseCase:
             prompt=prompt,
             status=DeckStatus.PENDING,
             style_preferences=style_preferences or {},
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.utcnow(),
         )
 
         # 3. Transaction boundary - all DB operations

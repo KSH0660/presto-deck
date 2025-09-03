@@ -273,6 +273,9 @@ uv run pytest tests/e2e/         # End-to-end scenarios
 ### Setup
 
 ```bash
+#
+docker compose -f docker-compose.dev.yml up -d
+
 # Clone and enter project
 git clone <repository-url>
 cd presto-deck-v1/backend

@@ -3,7 +3,7 @@ Deck creation endpoints.
 """
 
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status, Header, Body
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.schemas import CreateDeckRequest, CreateDeckResponse
@@ -29,13 +29,12 @@ log = get_logger("api.decks.creation")
 
 @router.post("/", response_model=CreateDeckResponse)
 async def create_deck(
-    raw: dict = Body(...),
+    request: CreateDeckRequest,
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
     arq_client: ARQClient = Depends(get_arq_client),
     ws_broadcaster: WebSocketBroadcaster = Depends(get_websocket_broadcaster),
     llm_client: LangChainClient = Depends(get_llm_client),
-    authorization: str | None = Header(default=None),
 ) -> CreateDeckResponse:
     """
     Create a new presentation deck and initiate the planning process.
@@ -48,28 +47,12 @@ async def create_deck(
     5. Returns deck_id for tracking via WebSocket
     """
     try:
-        # Explicit header check to ensure 401 on missing auth
-        if not authorization:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authorization header required",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
         bind_context(user_id=str(current_user_id))
         log.info(
             "deck.create.request",
-            prompt_len=len(raw.get("prompt", "")) if raw else 0,
-            has_style=bool((raw or {}).get("style_preferences")),
+            prompt_len=len(request.prompt),
+            has_style=bool(request.style_preferences),
         )
-        # Validate payload after auth to ensure 401 precedence
-        from pydantic import ValidationError
-
-        try:
-            request = CreateDeckRequest(**raw)
-        except ValidationError as ve:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ve.errors()
-            )
         # Assemble dependencies for CreateDeckPlanUseCase
         uow = UnitOfWork(db_session)
         deck_repo = DeckRepository(db_session)
