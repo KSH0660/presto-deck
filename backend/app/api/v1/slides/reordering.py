@@ -100,7 +100,7 @@ async def reorder_slides(
         response = SlideListResponse(
             items=slide_outputs,
             pagination=Pagination(
-                total=len(slide_outputs), limit=len(slide_outputs), offset=0
+                total=len(slide_outputs), limit=max(1, len(slide_outputs)), offset=0
             ),
         )
         log.info("slides.reorder.success", count=len(response.items))
