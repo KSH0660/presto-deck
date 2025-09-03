@@ -29,6 +29,3 @@ class DeckModel(Base):
     slides = relationship(
         "SlideModel", back_populates="deck", cascade="all, delete-orphan"
     )
-    events = relationship(
-        "EventModel", back_populates="deck", cascade="all, delete-orphan"
-    )

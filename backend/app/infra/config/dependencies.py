@@ -2,7 +2,7 @@
 FastAPI dependency injection configuration for Use Case-Driven Architecture.
 """
 
-from typing import Annotated
+from typing import Annotated, Optional
 from uuid import UUID
 from fastapi import Depends, HTTPException, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +30,20 @@ async def get_current_user_id(
             detail="Authorization header required",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # TODO: Implement proper JWT validation
+    # For development, return a dummy user ID
+    return UUID("12345678-1234-5678-9012-123456789012")
+
+
+async def verify_websocket_token(token: Optional[str]) -> Optional[UUID]:
+    """
+    Verify WebSocket JWT token and extract user ID.
+
+    For WebSocket connections, tokens are typically passed as query parameters.
+    """
+    if not token:
+        return None
 
     # TODO: Implement proper JWT validation
     # For development, return a dummy user ID

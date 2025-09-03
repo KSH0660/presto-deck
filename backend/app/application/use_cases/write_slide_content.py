@@ -21,6 +21,7 @@ from app.data.repositories.slide_repository import SlideRepository
 from app.data.repositories.event_repository import EventRepository
 from app.infra.messaging.websocket_broadcaster import WebSocketBroadcaster
 from app.infra.llm.langchain_client import LangChainClient
+from app.application.prompts.slide_content import SlideContent, SlideContentPrompts
 from app.infra.assets.template_catalog import TemplateCatalog
 from app.application.unit_of_work import UnitOfWork
 
@@ -157,25 +158,34 @@ class WriteSlideContentUseCase:
                 outline, title, presenter_notes
             )
 
-        system_prompt = """
-You are an expert web designer creating HTML content for presentation slides.
-You have been provided with a template file that shows the structure and styling approach.
+        # Use structured output for better reliability
+        system_prompt = SlideContentPrompts.get_system_prompt()
+        user_prompt = self._create_template_based_prompt(
+            title,
+            outline,
+            primary_template,
+            template_content,
+            adaptation_notes,
+            presenter_notes,
+        )
 
-Your task:
-1. Analyze the provided template structure and styling patterns
-2. Generate content that fits this template's design and layout
-3. Maintain the template's CSS classes and structure
-4. Adapt the content to match the template's visual approach
+        # Use structured output with SlideContent model
+        messages = self.llm_client.create_messages(user_prompt, system_prompt)
+        slide_content = await self.llm_client.invoke_structured(messages, SlideContent)
 
-Requirements:
-- Follow the template's HTML structure and CSS class patterns
-- Keep content engaging and professionally formatted
-- Use semantic HTML5 elements
-- No external scripts or unsafe content
-- Return only the content HTML (no <html>, <head>, or <body> tags)
-"""
+        return slide_content.html_content
 
-        user_prompt = f"""
+    def _create_template_based_prompt(
+        self,
+        title: str,
+        outline: str,
+        template_name: str,
+        template_content: str,
+        adaptation_notes: str,
+        presenter_notes: str,
+    ) -> str:
+        """Create prompt for template-based HTML generation."""
+        return f"""
 Generate HTML content for this slide using the provided template as a reference:
 
 **SLIDE DETAILS:**
@@ -184,7 +194,7 @@ Content Outline: {outline}
 Presenter Notes: {presenter_notes}
 
 **TEMPLATE TO FOLLOW:**
-Template File: {primary_template}
+Template File: {template_name}
 Template Content:
 ```html
 {template_content}
@@ -203,33 +213,25 @@ Template Content:
 Generate only the HTML content that would fit within this template structure.
 """
 
-        response = await self.llm_client.generate_text(user_prompt, system_prompt)
-        return response.strip()
-
     async def _generate_basic_html_content(
         self, outline: str, title: str, presenter_notes: str
     ) -> str:
         """Fallback method for basic HTML generation when no template is available."""
-        html_prompt = f"""
-Generate professional HTML content for a presentation slide:
 
-Title: {title}
-Content Outline: {outline}
-Presenter Notes: {presenter_notes}
+        # Use structured output for consistent results
+        system_prompt = SlideContentPrompts.get_system_prompt()
+        user_prompt = SlideContentPrompts.get_user_prompt(
+            title=title,
+            content_outline=outline,
+            template_type="basic",
+            context={"presenter_notes": presenter_notes},
+        )
 
-Requirements:
-- Use semantic HTML5 elements
-- Include appropriate CSS classes for styling
-- Make content engaging and visual
-- Include bullet points, headings, and structure
-- Keep it concise but comprehensive
-- No external scripts or unsafe content
+        # Use structured output with SlideContent model
+        messages = self.llm_client.create_messages(user_prompt, system_prompt)
+        slide_content = await self.llm_client.invoke_structured(messages, SlideContent)
 
-Return only the HTML content (no <html>, <head>, or <body> tags).
-"""
-
-        response = await self.llm_client.generate_text(html_prompt)
-        return response.strip()
+        return slide_content.html_content
 
     async def _check_and_complete_deck(self, deck_id: UUID) -> bool:
         """Check if all slides are complete and mark deck as completed if so."""

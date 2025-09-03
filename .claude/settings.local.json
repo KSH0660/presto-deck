@@ -19,7 +19,11 @@
       "Bash(npm install)",
       "Bash(git add:*)",
       "Bash(git rm:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(tree:*)",
+      "Bash(uv run:*)",
+      "Bash(git push:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

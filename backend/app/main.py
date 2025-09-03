@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.decks import router as decks_router
+from app.api.v1.slides import router as slides_router
+from app.api.v1.websocket import router as websocket_router
 from app.infra.config.settings import get_settings
 
 settings = get_settings()
@@ -29,6 +31,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(decks_router, prefix="/api/v1", tags=["decks"])
+app.include_router(slides_router, prefix="/api/v1", tags=["slides"])
+app.include_router(websocket_router, prefix="/api/v1", tags=["websocket"])
 
 
 @app.get("/")
