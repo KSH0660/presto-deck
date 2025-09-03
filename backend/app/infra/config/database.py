@@ -6,9 +6,8 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from app.infra.config.settings import get_settings
 
+# Eagerly initialize the engine and session factory
 settings = get_settings()
-
-# Create async engine
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug_sql,
@@ -16,10 +15,19 @@ engine = create_async_engine(
     pool_recycle=300,
 )
 
-# Create session factory
 async_session_factory = async_sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
 )
+
+
+def get_engine():
+    """Get the database engine."""
+    return engine
+
+
+def get_session_factory():
+    """Get the session factory."""
+    return async_session_factory
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:

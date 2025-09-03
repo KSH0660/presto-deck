@@ -9,6 +9,8 @@ from app.api.v1.decks import router as decks_router
 from app.api.v1.slides import router as slides_router
 from app.api.v1.websocket import router as websocket_router
 from app.infra.config.settings import get_settings
+from app.infra.config.logging_config import setup_logging, get_logger
+from app.infra.middleware.request_context import RequestContextMiddleware
 
 settings = get_settings()
 
@@ -28,6 +30,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Request context + logging middleware
+app.add_middleware(RequestContextMiddleware)
 
 # Include routers
 app.include_router(decks_router, prefix="/api/v1", tags=["decks"])
@@ -59,13 +64,18 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     """Initialize application on startup."""
-    print(f"Starting {settings.app_name}")
+    setup_logging()
+    logger = get_logger("app")
+    logger.info(
+        "app.startup", app_name=settings.app_name, environment=settings.environment
+    )
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on application shutdown."""
-    print(f"Shutting down {settings.app_name}")
+    logger = get_logger("app")
+    logger.info("app.shutdown", app_name=settings.app_name)
 
 
 if __name__ == "__main__":

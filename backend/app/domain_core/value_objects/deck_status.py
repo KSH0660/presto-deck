@@ -9,7 +9,7 @@ class DeckStatus(str, Enum):
     PENDING = "pending"
     PLANNING = "planning"
     GENERATING = "generating"
-    EDITTING = "editing"
+    EDITING = "editing"
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"

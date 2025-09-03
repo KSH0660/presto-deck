@@ -8,7 +8,7 @@ import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 
 # Add the backend directory to Python path so imports work
 backend_dir = Path(__file__).parent.parent
@@ -95,7 +95,9 @@ def client(app):
 @pytest.fixture
 async def async_client(app):
     """Async FastAPI test client for WebSocket and async tests."""
-    async with AsyncClient(app=app, base_url="http://testserver") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as ac:
         yield ac
 
 

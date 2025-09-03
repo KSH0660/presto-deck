@@ -13,6 +13,7 @@ from app.infra.messaging.websocket_broadcaster import WebSocketBroadcaster
 from app.infra.llm.langchain_client import LangChainClient
 from app.infra.assets.template_catalog import TemplateCatalog
 from app.infra.config.settings import get_settings
+from app.infra.config.logging_config import get_logger
 
 
 async def get_current_user_id(
@@ -24,7 +25,9 @@ async def get_current_user_id(
     For now, this is a placeholder implementation.
     In production, this would validate JWT and extract user_id.
     """
+    logger = get_logger("auth")
     if not authorization:
+        logger.info("auth.missing_header")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authorization header required",
@@ -33,7 +36,9 @@ async def get_current_user_id(
 
     # TODO: Implement proper JWT validation
     # For development, return a dummy user ID
-    return UUID("12345678-1234-5678-9012-123456789012")
+    user_id = UUID("12345678-1234-5678-9012-123456789012")
+    logger.info("auth.ok", user_id=str(user_id))
+    return user_id
 
 
 async def verify_websocket_token(token: Optional[str]) -> Optional[UUID]:
@@ -42,12 +47,16 @@ async def verify_websocket_token(token: Optional[str]) -> Optional[UUID]:
 
     For WebSocket connections, tokens are typically passed as query parameters.
     """
+    logger = get_logger("auth.ws")
     if not token:
+        logger.info("auth.ws.no_token")
         return None
 
     # TODO: Implement proper JWT validation
     # For development, return a dummy user ID
-    return UUID("12345678-1234-5678-9012-123456789012")
+    user_id = UUID("12345678-1234-5678-9012-123456789012")
+    logger.info("auth.ws.ok", user_id=str(user_id))
+    return user_id
 
 
 async def get_websocket_broadcaster() -> WebSocketBroadcaster:

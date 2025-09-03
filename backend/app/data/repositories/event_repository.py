@@ -9,11 +9,13 @@ from sqlalchemy import select
 from datetime import datetime
 
 from app.data.models.event_model import EventModel
+from app.infra.config.logging_config import get_logger
 
 
 class EventRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self._log = get_logger("repo.event")
 
     async def store_event(self, deck_id: UUID, event_data: Dict[str, Any]) -> None:
         """Store a deck event."""
@@ -26,6 +28,9 @@ class EventRepository:
 
         self.session.add(event_model)
         await self.session.flush()
+        self._log.info(
+            "event.store", deck_id=str(deck_id), event_type=event_data.get("type")
+        )
 
     async def get_events_by_deck_id(self, deck_id: UUID) -> List[Dict[str, Any]]:
         """Get all events for a deck ordered by creation time."""
@@ -36,7 +41,9 @@ class EventRepository:
         )
         event_models = result.scalars().all()
 
-        return [model.event_data for model in event_models]
+        items = [model.event_data for model in event_models]
+        self._log.info("event.list", deck_id=str(deck_id), count=len(items))
+        return items
 
     async def get_events_since_version(
         self, deck_id: UUID, since_version: int
@@ -52,4 +59,11 @@ class EventRepository:
         )
         event_models = result.scalars().all()
 
-        return [model.event_data for model in event_models]
+        items = [model.event_data for model in event_models]
+        self._log.info(
+            "event.list.since",
+            deck_id=str(deck_id),
+            since_version=since_version,
+            count=len(items),
+        )
+        return items

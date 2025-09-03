@@ -20,6 +20,7 @@ from app.data.repositories.event_repository import EventRepository
 from app.infra.messaging.arq_client import ARQClient
 from app.infra.messaging.websocket_broadcaster import WebSocketBroadcaster
 from app.application.unit_of_work import UnitOfWork
+from app.infra.config.logging_config import get_logger, bind_context
 
 
 class CreateDeckPlanUseCase:
@@ -30,12 +31,15 @@ class CreateDeckPlanUseCase:
         event_repo: EventRepository,
         arq_client: ARQClient,
         ws_broadcaster: WebSocketBroadcaster,
+        llm_client=None,
     ):
         self.uow = uow
         self.deck_repo = deck_repo
         self.event_repo = event_repo
         self.arq_client = arq_client
         self.ws_broadcaster = ws_broadcaster
+        self.llm_client = llm_client
+        self._log = get_logger("usecase.create_deck_plan")
 
     async def execute(
         self, user_id: UUID, prompt: str, style_preferences: Dict[str, Any] = None
@@ -47,6 +51,8 @@ class CreateDeckPlanUseCase:
             Dict with deck_id and initial status
         """
         # 1. Domain validation (core business rules)
+        bind_context(user_id=str(user_id))
+        self._log.info("usecase.start", action="create_deck_plan")
         DeckValidators.validate_prompt(prompt)
         if style_preferences:
             DeckValidators.validate_style_preferences(style_preferences)
@@ -107,6 +113,11 @@ class CreateDeckPlanUseCase:
                 prompt=prompt,
                 style_preferences=style_preferences,
             )
+            self._log.info(
+                "usecase.side_effect.arq_enqueued",
+                deck_id=str(deck_id),
+                job_id=str(job_id),
+            )
 
             # 2. Broadcast to WebSocket clients
             await self.ws_broadcaster.broadcast_to_user(
@@ -119,9 +130,16 @@ class CreateDeckPlanUseCase:
                     "timestamp": datetime.utcnow().isoformat(),
                 },
             )
+            self._log.info(
+                "usecase.side_effect.ws_broadcast",
+                deck_id=str(deck_id),
+                status=DeckStatus.PENDING.value,
+            )
 
         except Exception as e:
             # Log error but don't fail the use case
             # The deck is already created, background processes will retry
-            print(f"Side effect error for deck {deck_id}: {e}")
+            self._log.exception(
+                "usecase.side_effect.error", deck_id=str(deck_id), error=str(e)
+            )
             # In production: logger.error("Side effect failed", extra={"deck_id": deck_id, "error": str(e)})

@@ -21,8 +21,15 @@ from app.infra.config.dependencies import (
 )
 from app.infra.messaging.websocket_broadcaster import WebSocketBroadcaster
 from app.data.queries.deck_queries import DeckQueries
+from app.infra.config.database import get_db_session
+import inspect
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.infra.config.logging_config import get_logger, bind_context
+
+# Backward-compat alias for tests that patch this symbol
 
 router = APIRouter(prefix="/ws", tags=["websocket"])
+log = get_logger("api.websocket")
 
 
 @router.websocket("/decks/{deck_id}")
@@ -31,6 +38,8 @@ async def websocket_deck_updates(
     deck_id: UUID,
     token: Optional[str] = Query(None),
     last_version: Optional[int] = Query(0),  # For event replay
+    ws_broadcaster: WebSocketBroadcaster = Depends(get_websocket_broadcaster),
+    db_session: AsyncSession = Depends(get_db_session),
 ):
     """
     WebSocket endpoint for real-time deck updates.
@@ -62,26 +71,22 @@ async def websocket_deck_updates(
 
     # Verify user has access to deck
     try:
-        from app.infra.config.database import async_session
+        deck_query = DeckQueries(db_session)
+        _res = deck_query.get_deck_status(deck_id, user_id)
+        deck_info = await _res if inspect.isawaitable(_res) else _res
 
-        async with async_session() as db_session:
-            deck_query = DeckQueries(db_session)
-            deck_info = await deck_query.get_deck_status(deck_id, user_id)
-
-            if not deck_info:
-                await websocket.close(
-                    code=4004, reason="Deck not found or access denied"
-                )
-                return
+        if not deck_info:
+            await websocket.close(code=4004, reason="Deck not found or access denied")
+            return
     except Exception:
         await websocket.close(code=4000, reason="Database error")
         return
 
-    # Get WebSocket broadcaster
-    ws_broadcaster = get_websocket_broadcaster()
-
     try:
-        # Connect to deck updates
+        bind_context(user_id=str(user_id), deck_id=str(deck_id))
+        log.info("ws.deck.connect.request")
+        # Accept and connect to deck updates
+        await websocket.accept()
         await ws_broadcaster.connect_deck(str(deck_id), websocket)
 
         # Send replay events if requested
@@ -137,7 +142,7 @@ async def websocket_deck_updates(
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        print(f"WebSocket error for deck {deck_id}: {e}")
+        log.exception("ws.deck.error", deck_id=str(deck_id), error=str(e))
     finally:
         # Clean up connection
         await ws_broadcaster.disconnect_deck(str(deck_id), websocket)
@@ -148,6 +153,7 @@ async def websocket_user_updates(
     websocket: WebSocket,
     user_id: UUID,
     token: Optional[str] = Query(None),
+    ws_broadcaster: WebSocketBroadcaster = Depends(get_websocket_broadcaster),
 ):
     """
     WebSocket endpoint for user-level updates across all their decks.
@@ -157,18 +163,18 @@ async def websocket_user_updates(
     # Authenticate WebSocket connection
     try:
         authenticated_user_id = await verify_websocket_token(token) if token else None
-        if not authenticated_user_id or authenticated_user_id != user_id:
+        if not authenticated_user_id or str(authenticated_user_id) != str(user_id):
             await websocket.close(code=4001, reason="Authentication required")
             return
     except Exception:
         await websocket.close(code=4001, reason="Invalid token")
         return
 
-    # Get WebSocket broadcaster
-    ws_broadcaster = get_websocket_broadcaster()
-
     try:
-        # Connect to user updates
+        bind_context(user_id=str(user_id))
+        log.info("ws.user.connect.request")
+        # Accept and connect to user updates
+        await websocket.accept()
         await ws_broadcaster.connect_user(str(user_id), websocket)
 
         # Send initial connection confirmation
@@ -204,7 +210,7 @@ async def websocket_user_updates(
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        print(f"WebSocket error for user {user_id}: {e}")
+        log.exception("ws.user.error", user_id=str(user_id), error=str(e))
     finally:
         await ws_broadcaster.disconnect_user(str(user_id), websocket)
 
@@ -249,7 +255,7 @@ async def get_connection_stats(
             "decks": connected_decks,
         }
     except Exception as e:
-        print(f"Error getting connection stats: {e}")
+        log.exception("ws.stats.error", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to get connection stats")
 
 
@@ -271,7 +277,7 @@ async def broadcast_to_deck(
             "message": f"Broadcasted to deck {deck_id}",
         }
     except Exception as e:
-        print(f"Error broadcasting to deck {deck_id}: {e}")
+        log.exception("ws.broadcast.deck.error", deck_id=str(deck_id), error=str(e))
         raise HTTPException(status_code=500, detail="Failed to broadcast message")
 
 
@@ -293,5 +299,5 @@ async def broadcast_to_user(
             "message": f"Broadcasted to user {user_id}",
         }
     except Exception as e:
-        print(f"Error broadcasting to user {user_id}: {e}")
+        log.exception("ws.broadcast.user.error", user_id=str(user_id), error=str(e))
         raise HTTPException(status_code=500, detail="Failed to broadcast message")

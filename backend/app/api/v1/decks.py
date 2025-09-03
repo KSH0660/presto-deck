@@ -3,7 +3,8 @@ FastAPI router for deck operations using Use Case-Driven Architecture.
 """
 
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+import inspect
+from fastapi import APIRouter, Depends, HTTPException, status, Header, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.schemas import (
@@ -21,6 +22,8 @@ from app.application.use_cases.create_deck_plan import CreateDeckPlanUseCase
 from app.application.unit_of_work import UnitOfWork
 from app.data.repositories.deck_repository import DeckRepository
 from app.data.repositories.event_repository import EventRepository
+from app.data.repositories.slide_repository import SlideRepository
+from app.data.queries.deck_queries import DeckQueries
 from app.infra.messaging.arq_client import ARQClient
 from app.infra.messaging.websocket_broadcaster import WebSocketBroadcaster
 from app.infra.llm.langchain_client import LangChainClient
@@ -31,19 +34,23 @@ from app.infra.config.dependencies import (
     get_websocket_broadcaster,
     get_llm_client,
 )
+from app.infra.messaging.redis_client import get_redis_client
+from app.infra.config.logging_config import get_logger, bind_context
 
 
 router = APIRouter(prefix="/decks", tags=["decks"])
+log = get_logger("api.decks")
 
 
 @router.post("/", response_model=CreateDeckResponse)
 async def create_deck(
-    request: CreateDeckRequest,
+    raw: dict = Body(...),
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
     arq_client: ARQClient = Depends(get_arq_client),
     ws_broadcaster: WebSocketBroadcaster = Depends(get_websocket_broadcaster),
     llm_client: LangChainClient = Depends(get_llm_client),
+    authorization: str | None = Header(default=None),
 ) -> CreateDeckResponse:
     """
     Create a new presentation deck and initiate the planning process.
@@ -56,6 +63,28 @@ async def create_deck(
     5. Returns deck_id for tracking via WebSocket
     """
     try:
+        # Explicit header check to ensure 401 on missing auth
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        bind_context(user_id=str(current_user_id))
+        log.info(
+            "deck.create.request",
+            prompt_len=len(raw.get("prompt", "")) if raw else 0,
+            has_style=bool((raw or {}).get("style_preferences")),
+        )
+        # Validate payload after auth to ensure 401 precedence
+        from pydantic import ValidationError
+
+        try:
+            request = CreateDeckRequest(**raw)
+        except ValidationError as ve:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ve.errors()
+            )
         # Assemble dependencies for CreateDeckPlanUseCase
         uow = UnitOfWork(db_session)
         deck_repo = DeckRepository(db_session)
@@ -78,18 +107,25 @@ async def create_deck(
             style_preferences=request.style_preferences,
         )
 
-        return CreateDeckResponse(
+        response = CreateDeckResponse(
             deck_id=str(result["deck_id"]),
             status=result["status"],
             message="Deck creation started. Connect to WebSocket for real-time updates.",
         )
+        log.info(
+            "deck.create.success", deck_id=response.deck_id, status=response.status
+        )
+        return response
 
     except ValueError as e:
         # Domain validation errors (prompt too short, invalid style preferences, etc.)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except HTTPException:
+        # Propagate explicit HTTP errors like 401
+        raise
     except Exception as e:
         # Log the error in production
-        print(f"Unexpected error creating deck: {e}")
+        log.exception("deck.create.error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create deck. Please try again.",
@@ -101,6 +137,7 @@ async def get_deck_status(
     deck_id: UUID,
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
+    authorization: str | None = Header(default=None),
 ) -> DeckStatusResponse:
     """
     Get current status of a deck.
@@ -109,11 +146,19 @@ async def get_deck_status(
     to the query layer following CQRS-lite pattern.
     """
     try:
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        bind_context(user_id=str(current_user_id), deck_id=str(deck_id))
+        log.info("deck.status.request")
         # Use query layer for read operations (CQRS-lite)
-        from app.data.queries.deck_queries import DeckQueries
 
         deck_query = DeckQueries(db_session)
-        deck_info = await deck_query.get_deck_with_slides(deck_id, current_user_id)
+        _res = deck_query.get_deck_status(deck_id, current_user_id)
+        deck_info = await _res if inspect.isawaitable(_res) else _res
 
         if not deck_info:
             raise HTTPException(
@@ -121,7 +166,7 @@ async def get_deck_status(
                 detail="Deck not found or access denied",
             )
 
-        return DeckStatusResponse(
+        response = DeckStatusResponse(
             deck_id=str(deck_info["deck_id"]),
             status=deck_info["status"],
             slide_count=deck_info["slide_count"],
@@ -129,12 +174,16 @@ async def get_deck_status(
             updated_at=deck_info.get("updated_at"),
             completed_at=deck_info.get("completed_at"),
         )
+        log.info(
+            "deck.status.success", deck_id=response.deck_id, status=response.status
+        )
+        return response
 
     except HTTPException:
         # Re-raise HTTP exceptions
         raise
     except Exception as e:
-        print(f"Error fetching deck status: {e}")
+        log.exception("deck.status.error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch deck status",
@@ -146,6 +195,7 @@ async def get_deck_details(
     deck_id: UUID,
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
+    authorization: str | None = Header(default=None),
 ) -> dict:
     """
     Get complete deck details including all slides.
@@ -153,10 +203,18 @@ async def get_deck_details(
     Returns the full deck structure with generated slides for completed decks.
     """
     try:
-        from app.data.queries.deck_queries import DeckQueries
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
+        bind_context(user_id=str(current_user_id), deck_id=str(deck_id))
+        log.info("deck.details.request")
         deck_query = DeckQueries(db_session)
-        deck_details = await deck_query.get_deck_with_slides(deck_id, current_user_id)
+        _res = deck_query.get_deck_with_slides(deck_id, current_user_id)
+        deck_details = await _res if inspect.isawaitable(_res) else _res
 
         if not deck_details:
             raise HTTPException(
@@ -164,12 +222,13 @@ async def get_deck_details(
                 detail="Deck not found or access denied",
             )
 
+        log.info("deck.details.success", deck_id=str(deck_id))
         return deck_details
 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error fetching deck details: {e}")
+        log.exception("deck.details.error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch deck details",
@@ -181,6 +240,7 @@ async def cancel_deck(
     deck_id: UUID,
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
+    authorization: str | None = Header(default=None),
 ) -> dict:
     """
     Cancel an in-progress deck generation.
@@ -188,14 +248,20 @@ async def cancel_deck(
     This sets a cancellation flag in Redis that workers check between operations.
     """
     try:
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        bind_context(user_id=str(current_user_id), deck_id=str(deck_id))
+        log.info("deck.cancel.request")
         # For cancellation, we could create a CancelDeckUseCase, but for now
         # we'll implement it directly as it's a simple operation
-        from app.data.queries.deck_queries import DeckQueries
-        from app.infra.messaging.redis_client import get_redis_client
-
         # Verify deck exists and belongs to user
         deck_query = DeckQueries(db_session)
-        deck_info = await deck_query.get_deck_status(deck_id, current_user_id)
+        _res = deck_query.get_deck_status(deck_id, current_user_id)
+        deck_info = await _res if inspect.isawaitable(_res) else _res
 
         if not deck_info:
             raise HTTPException(
@@ -204,16 +270,17 @@ async def cancel_deck(
             )
 
         # Check if deck can be cancelled
-        if deck_info["status"] in ["COMPLETED", "FAILED", "CANCELLED"]:
+        if deck_info["status"] in ["completed", "failed", "cancelled"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Cannot cancel deck in {deck_info['status']} status",
             )
 
         # Set cancellation flag in Redis
-        redis_client = get_redis_client()
+        redis_client = await get_redis_client()
         await redis_client.setex(f"cancel_deck:{deck_id}", 3600, "true")  # 1 hour TTL
 
+        log.info("deck.cancel.success", deck_id=str(deck_id))
         return {
             "message": "Cancellation request received. Processing will stop at the next checkpoint.",
             "deck_id": str(deck_id),
@@ -222,7 +289,7 @@ async def cancel_deck(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error cancelling deck: {e}")
+        log.exception("deck.cancel.error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to cancel deck",
@@ -236,6 +303,7 @@ async def get_deck_slides(
     offset: int = 0,
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
+    authorization: str | None = Header(default=None),
 ) -> SlideListResponse:
     """
     Get all slides for a deck with pagination.
@@ -243,12 +311,19 @@ async def get_deck_slides(
     Returns slides ordered by their position in the deck.
     """
     try:
-        from app.data.repositories.slide_repository import SlideRepository
-        from app.data.queries.deck_queries import DeckQueries
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
+        bind_context(user_id=str(current_user_id), deck_id=str(deck_id))
+        log.info("deck.slides.request", limit=limit, offset=offset)
         # Verify deck exists and belongs to user
         deck_query = DeckQueries(db_session)
-        deck_info = await deck_query.get_deck_status(deck_id, current_user_id)
+        _res = deck_query.get_deck_status(deck_id, current_user_id)
+        deck_info = await _res if inspect.isawaitable(_res) else _res
 
         if not deck_info:
             raise HTTPException(
@@ -272,22 +347,24 @@ async def get_deck_slides(
                 content_outline=slide.content_outline,
                 html_content=slide.html_content,
                 presenter_notes=slide.presenter_notes,
-                template_type=slide.template_type.value,
+                template_type=slide.template_filename,
                 created_at=slide.created_at,
                 updated_at=slide.updated_at,
             )
             for slide in paginated_slides
         ]
 
-        return SlideListResponse(
+        response = SlideListResponse(
             items=slide_outputs,
             pagination=Pagination(total=total, limit=limit, offset=offset),
         )
+        log.info("deck.slides.success", count=len(response.items))
+        return response
 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error fetching deck slides: {e}")
+        log.exception("deck.slides.error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch deck slides",
@@ -300,6 +377,7 @@ async def insert_slide(
     request: InsertSlideRequest,
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
+    authorization: str | None = Header(default=None),
 ) -> SlideOut:
     """
     Insert a new slide into the deck at the specified position.
@@ -308,15 +386,25 @@ async def insert_slide(
     All subsequent slides will have their order incremented.
     """
     try:
-        from app.data.repositories.slide_repository import SlideRepository
-        from app.data.queries.deck_queries import DeckQueries
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         from app.domain_core.entities.slide import Slide
-        from app.domain_core.value_objects.template_type import TemplateType
         from datetime import datetime
 
+        bind_context(user_id=str(current_user_id), deck_id=str(deck_id))
+        log.info(
+            "slide.insert.request",
+            after_slide_id=request.after_slide_id,
+            position=request.position,
+        )
         # Verify deck exists and belongs to user
         deck_query = DeckQueries(db_session)
-        deck_info = await deck_query.get_deck_status(deck_id, current_user_id)
+        _res = deck_query.get_deck_status(deck_id, current_user_id)
+        deck_info = await _res if inspect.isawaitable(_res) else _res
 
         if not deck_info:
             raise HTTPException(
@@ -353,20 +441,23 @@ async def insert_slide(
                 await slide_repo.update(slide)
 
         # Create new slide
-        template_type = TemplateType(request.template_type or "default")
+        template_filename = request.template_type or "content_slide.html"
         new_slide = Slide(
+            id=None,
             deck_id=deck_id,
             order=insert_order,
             title="New Slide",
             content_outline=request.seed_outline or "Click to edit slide content",
-            template_type=template_type,
+            html_content=None,
+            presenter_notes="",
+            template_filename=template_filename,
             created_at=datetime.utcnow(),
         )
 
         created_slide = await slide_repo.create(new_slide)
         await db_session.commit()
 
-        return SlideOut(
+        response = SlideOut(
             id=str(created_slide.id),
             deck_id=str(created_slide.deck_id),
             order=created_slide.order,
@@ -374,17 +465,19 @@ async def insert_slide(
             content_outline=created_slide.content_outline,
             html_content=created_slide.html_content,
             presenter_notes=created_slide.presenter_notes,
-            template_type=created_slide.template_type.value,
+            template_type=created_slide.template_filename,
             created_at=created_slide.created_at,
             updated_at=created_slide.updated_at,
         )
+        log.info("slide.insert.success", slide_id=response.id, order=response.order)
+        return response
 
     except HTTPException:
         raise
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        print(f"Error inserting slide: {e}")
+        log.exception("slide.insert.error", error=str(e))
         await db_session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -398,6 +491,7 @@ async def reorder_slides(
     request: ReorderSlidesRequest,
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
+    authorization: str | None = Header(default=None),
 ) -> SlideListResponse:
     """
     Reorder slides in the deck.
@@ -405,12 +499,19 @@ async def reorder_slides(
     Provide a list of slide_id and their new order positions.
     """
     try:
-        from app.data.repositories.slide_repository import SlideRepository
-        from app.data.queries.deck_queries import DeckQueries
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
+        bind_context(user_id=str(current_user_id), deck_id=str(deck_id))
+        log.info("slides.reorder.request", count=len(request.orders))
         # Verify deck exists and belongs to user
         deck_query = DeckQueries(db_session)
-        deck_info = await deck_query.get_deck_status(deck_id, current_user_id)
+        _res = deck_query.get_deck_status(deck_id, current_user_id)
+        deck_info = await _res if inspect.isawaitable(_res) else _res
 
         if not deck_info:
             raise HTTPException(
@@ -451,24 +552,26 @@ async def reorder_slides(
                 content_outline=slide.content_outline,
                 html_content=slide.html_content,
                 presenter_notes=slide.presenter_notes,
-                template_type=slide.template_type.value,
+                template_type=slide.template_filename,
                 created_at=slide.created_at,
                 updated_at=slide.updated_at,
             )
             for slide in updated_slides
         ]
 
-        return SlideListResponse(
+        response = SlideListResponse(
             items=slide_outputs,
             pagination=Pagination(
                 total=len(slide_outputs), limit=len(slide_outputs), offset=0
             ),
         )
+        log.info("slides.reorder.success", count=len(response.items))
+        return response
 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error reordering slides: {e}")
+        log.exception("slides.reorder.error", error=str(e))
         await db_session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -483,6 +586,7 @@ async def get_deck_events(
     limit: int = 100,
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
+    authorization: str | None = Header(default=None),
 ) -> list[DeckEventOut]:
     """
     Get deck events for polling-based updates (alternative to WebSocket).
@@ -490,11 +594,19 @@ async def get_deck_events(
     Use since_version parameter to get only new events since last check.
     """
     try:
-        from app.data.queries.deck_queries import DeckQueries
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
+        bind_context(user_id=str(current_user_id), deck_id=str(deck_id))
+        log.info("deck.events.request", since_version=since_version, limit=limit)
         # Verify deck exists and belongs to user
         deck_query = DeckQueries(db_session)
-        deck_info = await deck_query.get_deck_status(deck_id, current_user_id)
+        _res = deck_query.get_deck_status(deck_id, current_user_id)
+        deck_info = await _res if inspect.isawaitable(_res) else _res
 
         if not deck_info:
             raise HTTPException(
@@ -504,12 +616,13 @@ async def get_deck_events(
 
         # For now, return empty list - this would integrate with event sourcing
         # In a full implementation, this would query the deck_events table
+        log.info("deck.events.success", items=0)
         return []
 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error fetching deck events: {e}")
+        log.exception("deck.events.error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch deck events",

@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.output_parsers import StrOutputParser
 from pydantic import BaseModel
+from app.infra.config.logging_config import get_logger
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -34,6 +35,7 @@ class LangChainClient:
             model=model_name, temperature=temperature, max_tokens=max_tokens, **kwargs
         )
         self._text_parser = StrOutputParser()
+        self._log = get_logger("infra.llm")
 
     async def invoke_text(self, messages: List[BaseMessage]) -> str:
         """
@@ -46,6 +48,7 @@ class LangChainClient:
             Raw text response from LLM
         """
         response = await self.llm.ainvoke(messages)
+        self._log.info("llm.invoke.text")
         return self._text_parser.parse(response)
 
     async def invoke_structured(
@@ -63,6 +66,7 @@ class LangChainClient:
         """
         structured_llm = self.llm.with_structured_output(response_model)
         response = await structured_llm.ainvoke(messages)
+        self._log.info("llm.invoke.structured", model=response_model.__name__)
         return response
 
     async def invoke_with_retry(
@@ -101,6 +105,7 @@ class LangChainClient:
                     continue
 
         # If all retries failed, raise the last error
+        self._log.error("llm.invoke.failed", error=str(last_error))
         raise last_error
 
     def create_messages(
@@ -172,6 +177,7 @@ class LangChainClient:
         async for chunk in self.llm.astream(messages):
             if hasattr(chunk, "content") and chunk.content:
                 yield chunk.content
+        self._log.info("llm.stream.end")
 
     def get_model_info(self) -> dict:
         """Get information about the current LLM configuration."""

@@ -11,7 +11,6 @@ from datetime import datetime
 
 from app.domain_core.entities.slide import Slide
 from app.domain_core.value_objects.deck_status import DeckStatus
-from app.domain_core.value_objects.template_type import TemplateType
 from app.data.repositories.deck_repository import DeckRepository
 from app.data.repositories.slide_repository import SlideRepository
 from app.data.repositories.event_repository import EventRepository
@@ -19,6 +18,7 @@ from app.infra.messaging.websocket_broadcaster import WebSocketBroadcaster
 from app.infra.llm.langchain_client import LangChainClient
 from app.application.prompts.deck_planning import DeckPlan, DeckPlanningPrompts
 from app.application.unit_of_work import UnitOfWork
+from app.infra.config.logging_config import get_logger, bind_context
 
 
 class GenerateDeckPlanUseCase:
@@ -44,6 +44,7 @@ class GenerateDeckPlanUseCase:
         self.event_repo = event_repo
         self.ws_broadcaster = ws_broadcaster
         self.llm_client = llm_client
+        self._log = get_logger("usecase.generate_deck_plan")
 
     async def execute(
         self,
@@ -69,6 +70,8 @@ class GenerateDeckPlanUseCase:
             Dict with generation results and slide count
         """
 
+        bind_context(deck_id=str(deck_id), user_id=str(user_id))
+        self._log.info("usecase.start", action="generate_deck_plan")
         # 1. Validate deck exists and is in correct state
         deck = await self.deck_repo.get_by_id(deck_id)
         if not deck:
@@ -115,6 +118,7 @@ class GenerateDeckPlanUseCase:
             await self._update_deck_status(
                 deck_id, DeckStatus.FAILED, f"Planning failed: {str(e)}"
             )
+            self._log.exception("usecase.error", error=str(e))
             raise
 
     async def _generate_structured_deck_plan(
@@ -159,7 +163,7 @@ class GenerateDeckPlanUseCase:
                     title=slide_outline.title,
                     content_outline=slide_outline.content,
                     presenter_notes=slide_outline.notes,
-                    template_type=TemplateType.DEFAULT,  # Will be updated by template selection
+                    template_filename="content_slide.html",  # Will be updated by template selection
                     created_at=datetime.utcnow(),
                 )
 
@@ -220,14 +224,16 @@ class GenerateDeckPlanUseCase:
                 },
             )
         except Exception as e:
-            print(f"Failed to broadcast status change: {e}")
+            self._log.exception("ws.broadcast.error", error=str(e))
 
     async def _enqueue_slide_generation_jobs(self, deck_id: UUID, slides: List[Slide]):
         """Enqueue background jobs for slide content generation."""
 
         # This would enqueue ARQ jobs for slide content generation
         # For now, just log that jobs would be enqueued
-        print(f"Would enqueue {len(slides)} slide generation jobs for deck {deck_id}")
+        self._log.info(
+            "enqueue.slide_jobs.placeholder", deck_id=str(deck_id), count=len(slides)
+        )
 
         # In a full implementation:
         # for slide in slides:

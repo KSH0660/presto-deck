@@ -12,17 +12,7 @@ from typing import Optional, Union
 from pydantic import BaseModel, Field, HttpUrl
 from typing_extensions import Literal
 
-
-# ---------- COMMON ENUMS ----------
-class DeckStatus(str, Enum):
-    """Status of deck generation process."""
-
-    pending = "pending"
-    planning = "planning"
-    rendering = "rendering"
-    editing = "editing"
-    completed = "completed"
-    failed = "failed"
+# Use domain DeckStatus as single source of truth
 
 
 class EventType(str, Enum):

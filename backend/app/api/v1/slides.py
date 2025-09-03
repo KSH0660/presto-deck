@@ -21,20 +21,24 @@ from app.data.models.slide_version_model import SlideVersionReason
 from app.data.queries.deck_queries import DeckQueries
 from app.infra.config.database import get_db_session
 from app.infra.config.dependencies import get_current_user_id
+from app.infra.config.logging_config import get_logger, bind_context
+import inspect
 
 
 router = APIRouter(prefix="/slides", tags=["slides"])
+log = get_logger("api.slides")
 
 
 @router.patch("/{slide_id}", response_model=SlideOut)
 async def update_slide(
-    slide_id: UUID,
+    slide_id: str,
     request: PatchSlideRequest,
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
     if_match: Optional[str] = Header(
         None, alias="If-Match"
     ),  # ETag for concurrency control
+    authorization: Optional[str] = Header(default=None),
 ) -> SlideOut:
     """
     Update slide content with automatic versioning.
@@ -46,6 +50,14 @@ async def update_slide(
     - If-Match: Optional ETag for optimistic concurrency control
     """
     try:
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        bind_context(user_id=str(current_user_id), slide_id=str(slide_id))
+        log.info("slide.update.request")
         slide_repo = SlideRepository(db_session)
         slide = await slide_repo.get_by_id(slide_id)
 
@@ -57,7 +69,8 @@ async def update_slide(
 
         # Verify user owns the deck
         deck_query = DeckQueries(db_session)
-        deck_info = await deck_query.get_deck_status(slide.deck_id, current_user_id)
+        _res = deck_query.get_deck_status(slide.deck_id, current_user_id)
+        deck_info = await _res if inspect.isawaitable(_res) else _res
 
         if not deck_info:
             raise HTTPException(
@@ -82,9 +95,7 @@ async def update_slide(
             slide.presenter_notes = request.presenter_notes
             updated = True
         if request.template_type is not None:
-            from app.domain_core.value_objects.template_type import TemplateType
-
-            slide.template_type = TemplateType(request.template_type)
+            slide.template_filename = request.template_type
             updated = True
 
         if not updated:
@@ -110,25 +121,32 @@ async def update_slide(
 
         await db_session.commit()
 
-        return SlideOut(
+        html_val = getattr(updated_slide, "html_content", None)
+        notes_val = getattr(updated_slide, "presenter_notes", None)
+        response = SlideOut(
             id=str(updated_slide.id),
             deck_id=str(updated_slide.deck_id),
             order=updated_slide.order,
             title=updated_slide.title,
             content_outline=updated_slide.content_outline,
-            html_content=updated_slide.html_content,
-            presenter_notes=updated_slide.presenter_notes,
-            template_type=updated_slide.template_type.value,
+            html_content=html_val if isinstance(html_val, (str, type(None))) else None,
+            presenter_notes=(
+                notes_val if isinstance(notes_val, (str, type(None))) else None
+            ),
+            template_type=updated_slide.template_filename,
             created_at=updated_slide.created_at,
             updated_at=updated_slide.updated_at,
         )
+        log.info("slide.update.success", slide_id=response.id)
+        return response
 
     except HTTPException:
         raise
     except ValueError as e:
+        log.exception("slide.update.value_error", error=str(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        print(f"Error updating slide: {e}")
+        log.exception("slide.update.error", error=str(e))
         await db_session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -141,6 +159,7 @@ async def delete_slide(
     slide_id: UUID,
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
+    authorization: Optional[str] = Header(default=None),
 ) -> DeleteSlideResponse:
     """
     Delete a slide (soft delete with versioning).
@@ -149,6 +168,14 @@ async def delete_slide(
     Updates the order of subsequent slides.
     """
     try:
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        bind_context(user_id=str(current_user_id), slide_id=str(slide_id))
+        log.info("slide.delete.request")
         slide_repo = SlideRepository(db_session)
         slide = await slide_repo.get_by_id(slide_id)
 
@@ -160,7 +187,8 @@ async def delete_slide(
 
         # Verify user owns the deck
         deck_query = DeckQueries(db_session)
-        deck_info = await deck_query.get_deck_status(slide.deck_id, current_user_id)
+        _res = deck_query.get_deck_status(slide.deck_id, current_user_id)
+        deck_info = await _res if inspect.isawaitable(_res) else _res
 
         if not deck_info:
             raise HTTPException(
@@ -191,12 +219,13 @@ async def delete_slide(
         await slide_repo.delete(slide_id)
         await db_session.commit()
 
+        log.info("slide.delete.success", slide_id=str(slide_id))
         return DeleteSlideResponse(slide_id=str(slide_id), soft_deleted=True)
 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error deleting slide: {e}")
+        log.exception("slide.delete.error", error=str(e))
         await db_session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -211,6 +240,7 @@ async def get_slide_versions(
     offset: int = 0,
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
+    authorization: Optional[str] = Header(default=None),
 ) -> SlideVersionListResponse:
     """
     Get version history for a slide.
@@ -218,6 +248,14 @@ async def get_slide_versions(
     Returns versions in descending order (newest first).
     """
     try:
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        bind_context(user_id=str(current_user_id), slide_id=str(slide_id))
+        log.info("slide.versions.request", limit=limit, offset=offset)
         slide_repo = SlideRepository(db_session)
         slide = await slide_repo.get_by_id(slide_id)
 
@@ -229,7 +267,8 @@ async def get_slide_versions(
 
         # Verify user owns the deck
         deck_query = DeckQueries(db_session)
-        deck_info = await deck_query.get_deck_status(slide.deck_id, current_user_id)
+        _res = deck_query.get_deck_status(slide.deck_id, current_user_id)
+        deck_info = await _res if inspect.isawaitable(_res) else _res
 
         if not deck_info:
             raise HTTPException(
@@ -257,15 +296,17 @@ async def get_slide_versions(
             for version in paginated_versions
         ]
 
-        return SlideVersionListResponse(
+        response = SlideVersionListResponse(
             items=version_outputs,
             pagination=Pagination(total=total, limit=limit, offset=offset),
         )
+        log.info("slide.versions.success", count=len(response.items))
+        return response
 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error fetching slide versions: {e}")
+        log.exception("slide.versions.error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch slide versions",
@@ -278,11 +319,20 @@ async def get_slide_version(
     version_no: int,
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
+    authorization: Optional[str] = Header(default=None),
 ) -> SlideVersionOut:
     """
     Get a specific version of a slide.
     """
     try:
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        bind_context(user_id=str(current_user_id), slide_id=str(slide_id))
+        log.info("slide.version.request", version_no=version_no)
         slide_repo = SlideRepository(db_session)
         slide = await slide_repo.get_by_id(slide_id)
 
@@ -294,7 +344,8 @@ async def get_slide_version(
 
         # Verify user owns the deck
         deck_query = DeckQueries(db_session)
-        deck_info = await deck_query.get_deck_status(slide.deck_id, current_user_id)
+        _res = deck_query.get_deck_status(slide.deck_id, current_user_id)
+        deck_info = await _res if inspect.isawaitable(_res) else _res
 
         if not deck_info:
             raise HTTPException(
@@ -310,7 +361,7 @@ async def get_slide_version(
                 detail="Version not found",
             )
 
-        return SlideVersionOut(
+        response = SlideVersionOut(
             id=str(version.id),
             slide_id=str(version.slide_id),
             deck_id=str(version.deck_id),
@@ -320,11 +371,13 @@ async def get_slide_version(
             created_at=version.created_at,
             created_by=str(version.created_by) if version.created_by else None,
         )
+        log.info("slide.version.success", version_no=response.version_no)
+        return response
 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error fetching slide version: {e}")
+        log.exception("slide.version.error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch slide version",
@@ -337,6 +390,7 @@ async def revert_slide(
     request: RevertSlideRequest,
     current_user_id: UUID = Depends(get_current_user_id),
     db_session: AsyncSession = Depends(get_db_session),
+    authorization: Optional[str] = Header(default=None),
 ) -> SlideOut:
     """
     Revert slide to a specific version.
@@ -344,6 +398,14 @@ async def revert_slide(
     Creates a new version entry documenting the revert action.
     """
     try:
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        bind_context(user_id=str(current_user_id), slide_id=str(slide_id))
+        log.info("slide.revert.request", to_version=request.to_version)
         slide_repo = SlideRepository(db_session)
         slide = await slide_repo.get_by_id(slide_id)
 
@@ -355,7 +417,8 @@ async def revert_slide(
 
         # Verify user owns the deck
         deck_query = DeckQueries(db_session)
-        deck_info = await deck_query.get_deck_status(slide.deck_id, current_user_id)
+        _res = deck_query.get_deck_status(slide.deck_id, current_user_id)
+        deck_info = await _res if inspect.isawaitable(_res) else _res
 
         if not deck_info:
             raise HTTPException(
@@ -387,25 +450,31 @@ async def revert_slide(
         # Get updated slide
         updated_slide = await slide_repo.get_by_id(slide_id)
 
-        return SlideOut(
+        html_val = getattr(updated_slide, "html_content", None)
+        notes_val = getattr(updated_slide, "presenter_notes", None)
+        response = SlideOut(
             id=str(updated_slide.id),
             deck_id=str(updated_slide.deck_id),
             order=updated_slide.order,
             title=updated_slide.title,
             content_outline=updated_slide.content_outline,
-            html_content=updated_slide.html_content,
-            presenter_notes=updated_slide.presenter_notes,
-            template_type=updated_slide.template_type.value,
+            html_content=html_val if isinstance(html_val, (str, type(None))) else None,
+            presenter_notes=(
+                notes_val if isinstance(notes_val, (str, type(None))) else None
+            ),
+            template_type=updated_slide.template_filename,
             created_at=updated_slide.created_at,
             updated_at=updated_slide.updated_at,
         )
+        log.info("slide.revert.success", slide_id=response.id)
+        return response
 
     except HTTPException:
         raise
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        print(f"Error reverting slide: {e}")
+        log.exception("slide.revert.error", error=str(e))
         await db_session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

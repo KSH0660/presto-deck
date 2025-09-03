@@ -11,11 +11,13 @@ from datetime import datetime
 from app.data.models.slide_model import SlideModel
 from app.data.models.slide_version_model import SlideVersionModel, SlideVersionReason
 from app.domain_core.entities.slide import Slide
+from app.infra.config.logging_config import get_logger
 
 
 class SlideRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self._log = get_logger("repo.slide")
 
     async def create(self, slide: Slide) -> Slide:
         """Create a new slide."""
@@ -26,7 +28,7 @@ class SlideRepository:
             content_outline=slide.content_outline,
             html_content=slide.html_content,
             presenter_notes=slide.presenter_notes,
-            template_filename=slide.template_type.value,
+            template_filename=slide.template_filename,
             created_at=slide.created_at,
             updated_at=slide.updated_at,
         )
@@ -36,6 +38,9 @@ class SlideRepository:
 
         # Update entity with generated ID
         slide.id = slide_model.id
+        self._log.info(
+            "slide.create", slide_id=str(slide.id), deck_id=str(slide.deck_id)
+        )
         return slide
 
     async def get_by_id(self, slide_id: UUID) -> Optional[Slide]:
@@ -46,9 +51,12 @@ class SlideRepository:
         slide_model = result.scalar_one_or_none()
 
         if not slide_model:
+            self._log.info("slide.get.not_found", slide_id=str(slide_id))
             return None
 
-        return self._to_entity(slide_model)
+        entity = self._to_entity(slide_model)
+        self._log.info("slide.get", slide_id=str(slide_id))
+        return entity
 
     async def get_by_deck_id(self, deck_id: UUID) -> List[Slide]:
         """Get all slides for a deck ordered by slide order."""
@@ -59,7 +67,9 @@ class SlideRepository:
         )
         slide_models = result.scalars().all()
 
-        return [self._to_entity(model) for model in slide_models]
+        items = [self._to_entity(model) for model in slide_models]
+        self._log.info("slide.list", deck_id=str(deck_id), count=len(items))
+        return items
 
     async def update(self, slide: Slide) -> Slide:
         """Update an existing slide."""
@@ -71,9 +81,12 @@ class SlideRepository:
                 content_outline=slide.content_outline,
                 html_content=slide.html_content,
                 presenter_notes=slide.presenter_notes,
+                template_filename=slide.template_filename,
+                order=slide.order,
                 updated_at=slide.updated_at,
             )
         )
+        self._log.info("slide.update", slide_id=str(slide.id))
         return slide
 
     async def delete(self, slide_id: UUID) -> bool:
@@ -81,14 +94,18 @@ class SlideRepository:
         result = await self.session.execute(
             delete(SlideModel).where(SlideModel.id == slide_id)
         )
-        return result.rowcount > 0
+        deleted = result.rowcount > 0
+        self._log.info("slide.delete", slide_id=str(slide_id), deleted=deleted)
+        return deleted
 
     async def count_slides(self, deck_id: UUID) -> int:
         """Count total slides in a deck."""
         result = await self.session.execute(
             select(func.count(SlideModel.id)).where(SlideModel.deck_id == deck_id)
         )
-        return result.scalar() or 0
+        count = result.scalar() or 0
+        self._log.info("slide.count", deck_id=str(deck_id), count=count)
+        return count
 
     async def count_incomplete_slides(self, deck_id: UUID) -> int:
         """Count slides without HTML content."""
@@ -97,7 +114,9 @@ class SlideRepository:
                 SlideModel.deck_id == deck_id, SlideModel.html_content.is_(None)
             )
         )
-        return result.scalar() or 0
+        count = result.scalar() or 0
+        self._log.info("slide.count.incomplete", deck_id=str(deck_id), count=count)
+        return count
 
     async def create_version(
         self,
@@ -134,6 +153,12 @@ class SlideRepository:
         slide_model.updated_at = datetime.utcnow()
 
         await self.session.flush()
+        self._log.info(
+            "slide.version.create",
+            slide_id=str(slide_id),
+            version_no=next_version_no,
+            reason=reason.value,
+        )
         return version_model
 
     async def get_version_history(self, slide_id: UUID) -> List[SlideVersionModel]:
@@ -143,7 +168,11 @@ class SlideRepository:
             .where(SlideVersionModel.slide_id == slide_id)
             .order_by(SlideVersionModel.version_no.desc())
         )
-        return result.scalars().all()
+        items = result.scalars().all()
+        self._log.info(
+            "slide.version.history", slide_id=str(slide_id), count=len(items)
+        )
+        return items
 
     async def get_version(
         self, slide_id: UUID, version_no: int
@@ -155,7 +184,14 @@ class SlideRepository:
                 SlideVersionModel.version_no == version_no,
             )
         )
-        return result.scalar_one_or_none()
+        version = result.scalar_one_or_none()
+        self._log.info(
+            "slide.version.get",
+            slide_id=str(slide_id),
+            version_no=version_no,
+            found=bool(version),
+        )
+        return version
 
     async def rollback_to_version(
         self, slide_id: UUID, version_no: int, created_by: Optional[UUID] = None
@@ -180,6 +216,9 @@ class SlideRepository:
             parent_version=version_no,
         )
 
+        self._log.info(
+            "slide.version.rollback", slide_id=str(slide_id), to_version=version_no
+        )
         return True
 
     async def update_with_versioning(
@@ -198,12 +237,14 @@ class SlideRepository:
             change_description=change_description,
         )
 
-        return await self.update(slide)
+        updated = await self.update(slide)
+        self._log.info(
+            "slide.update.versioned", slide_id=str(slide.id), reason=reason.value
+        )
+        return updated
 
     def _to_entity(self, model: SlideModel) -> Slide:
         """Convert SQLAlchemy model to domain entity."""
-        from app.domain_core.value_objects.template_type import TemplateType
-
         return Slide(
             id=model.id,
             deck_id=model.deck_id,
@@ -212,7 +253,7 @@ class SlideRepository:
             content_outline=model.content_outline,
             html_content=model.html_content,
             presenter_notes=model.presenter_notes,
-            template_type=TemplateType(model.template_filename),
+            template_filename=model.template_filename,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )

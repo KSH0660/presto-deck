@@ -26,6 +26,7 @@ from app.infra.messaging.websocket_broadcaster import WebSocketBroadcaster
 from app.infra.llm.langchain_client import LangChainClient
 from app.infra.assets.template_catalog import TemplateCatalog
 from app.application.unit_of_work import UnitOfWork
+from app.infra.config.logging_config import get_logger, bind_context
 
 
 class SelectTemplateUseCase:
@@ -48,6 +49,7 @@ class SelectTemplateUseCase:
         self.ws_broadcaster = ws_broadcaster
         self.llm_client = llm_client
         self.template_catalog = template_catalog
+        self._log = get_logger("usecase.select_template")
 
     async def execute(self, deck_id: UUID, deck_plan: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -60,6 +62,8 @@ class SelectTemplateUseCase:
         Returns:
             Dict with template selections and slide structure
         """
+        bind_context(deck_id=str(deck_id))
+        self._log.info("usecase.start", action="select_template")
         # 1. Validate deck exists and is in correct state
         deck = await self.deck_repo.get_by_id(deck_id)
         if not deck:
@@ -119,12 +123,14 @@ class SelectTemplateUseCase:
         # 6. Side effects after commit
         await self._trigger_side_effects(deck_id, slides, template_selections)
 
-        return {
+        result = {
             "deck_id": str(deck_id),
             "template_selections": template_selections.dict(),
             "slide_count": len(slides),
             "status": DeckStatus.GENERATING.value,
         }
+        self._log.info("usecase.success", deck_id=str(deck_id), slide_count=len(slides))
+        return result
 
     async def _select_templates_from_catalog(
         self, deck_plan: Dict[str, Any], style_preferences: Dict[str, Any]
@@ -267,5 +273,7 @@ Focus on matching slide content to template capabilities.
             )
 
         except Exception as e:
-            print(f"Side effect error for deck {deck_id}: {e}")
+            self._log.exception(
+                "usecase.side_effect.error", deck_id=str(deck_id), error=str(e)
+            )
             # In production: logger.error("Template selection side effect failed")

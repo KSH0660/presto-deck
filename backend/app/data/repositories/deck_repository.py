@@ -9,11 +9,13 @@ from sqlalchemy import select, update, delete
 
 from app.data.models.deck_model import DeckModel
 from app.domain_core.entities.deck import Deck
+from app.infra.config.logging_config import get_logger
 
 
 class DeckRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self._log = get_logger("repo.deck")
 
     async def create(self, deck: Deck) -> Deck:
         """Create a new deck."""
@@ -35,6 +37,7 @@ class DeckRepository:
 
         # Update entity with generated ID if needed
         deck.id = deck_model.id
+        self._log.info("deck.create", deck_id=str(deck.id), user_id=str(deck.user_id))
         return deck
 
     async def get_by_id(self, deck_id: UUID) -> Optional[Deck]:
@@ -45,9 +48,12 @@ class DeckRepository:
         deck_model = result.scalar_one_or_none()
 
         if not deck_model:
+            self._log.info("deck.get.not_found", deck_id=str(deck_id))
             return None
 
-        return self._to_entity(deck_model)
+        entity = self._to_entity(deck_model)
+        self._log.info("deck.get", deck_id=str(deck_id))
+        return entity
 
     async def get_by_user_id(self, user_id: UUID) -> List[Deck]:
         """Get all decks for a user."""
@@ -58,7 +64,9 @@ class DeckRepository:
         )
         deck_models = result.scalars().all()
 
-        return [self._to_entity(model) for model in deck_models]
+        items = [self._to_entity(model) for model in deck_models]
+        self._log.info("deck.list", count=len(items), user_id=str(user_id))
+        return items
 
     async def update(self, deck: Deck) -> Deck:
         """Update an existing deck."""
@@ -73,6 +81,7 @@ class DeckRepository:
                 completed_at=deck.completed_at,
             )
         )
+        self._log.info("deck.update", deck_id=str(deck.id), status=deck.status.value)
         return deck
 
     async def delete(self, deck_id: UUID) -> bool:
@@ -80,7 +89,9 @@ class DeckRepository:
         result = await self.session.execute(
             delete(DeckModel).where(DeckModel.id == deck_id)
         )
-        return result.rowcount > 0
+        deleted = result.rowcount > 0
+        self._log.info("deck.delete", deck_id=str(deck_id), deleted=deleted)
+        return deleted
 
     def _to_entity(self, model: DeckModel) -> Deck:
         """Convert SQLAlchemy model to domain entity."""

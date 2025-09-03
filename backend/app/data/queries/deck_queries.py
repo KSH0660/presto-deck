@@ -9,11 +9,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.data.models.deck_model import DeckModel
+from app.infra.config.logging_config import get_logger
 
 
 class DeckQueries:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self._log = get_logger("queries.deck")
 
     async def get_deck_status(
         self, deck_id: UUID, user_id: UUID
@@ -27,9 +29,12 @@ class DeckQueries:
         deck_model = result.scalar_one_or_none()
 
         if not deck_model:
+            self._log.info(
+                "deck.status.not_found", deck_id=str(deck_id), user_id=str(user_id)
+            )
             return None
 
-        return {
+        data = {
             "deck_id": str(deck_model.id),
             "status": deck_model.status,
             "slide_count": deck_model.slide_count,
@@ -37,6 +42,8 @@ class DeckQueries:
             "updated_at": deck_model.updated_at,
             "completed_at": deck_model.completed_at,
         }
+        self._log.info("deck.status.found", deck_id=str(deck_id), status=data["status"])
+        return data
 
     async def get_deck_with_slides(
         self, deck_id: UUID, user_id: UUID
@@ -50,6 +57,9 @@ class DeckQueries:
         deck_model = result.scalar_one_or_none()
 
         if not deck_model:
+            self._log.info(
+                "deck.details.not_found", deck_id=str(deck_id), user_id=str(user_id)
+            )
             return None
 
         slides = [
@@ -64,7 +74,7 @@ class DeckQueries:
             for slide in sorted(deck_model.slides, key=lambda s: s.order)
         ]
 
-        return {
+        data = {
             "deck_id": str(deck_model.id),
             "prompt": deck_model.prompt,
             "status": deck_model.status,
@@ -75,6 +85,10 @@ class DeckQueries:
             "updated_at": deck_model.updated_at,
             "completed_at": deck_model.completed_at,
         }
+        self._log.info(
+            "deck.details.found", deck_id=str(deck_id), slide_count=len(slides)
+        )
+        return data
 
     async def get_user_decks_summary(self, user_id: UUID) -> List[Dict[str, Any]]:
         """Get summary of all user's decks."""
@@ -85,7 +99,7 @@ class DeckQueries:
         )
         deck_models = result.scalars().all()
 
-        return [
+        result_list = [
             {
                 "deck_id": str(deck.id),
                 "prompt": (
@@ -99,3 +113,7 @@ class DeckQueries:
             }
             for deck in deck_models
         ]
+        self._log.info(
+            "deck.list.summary", count=len(result_list), user_id=str(user_id)
+        )
+        return result_list
