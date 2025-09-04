@@ -6,8 +6,8 @@ A simple POC for generating AI-powered presentations with real-time streaming up
 
 ### Prerequisites
 - Python 3.13+
+- **Redis** (required for WebSocket, background jobs, event streaming)
 - PostgreSQL (optional, uses SQLite by default)
-- Redis (optional, for background jobs)
 
 ### Setup & Run
 
@@ -15,6 +15,9 @@ A simple POC for generating AI-powered presentations with real-time streaming up
 # Clone and setup
 git clone <repository-url>
 cd presto-deck-v1/backend
+
+# Start Redis (required)
+docker run -d --name redis -p 6379:6379 redis:7-alpine
 
 # Install dependencies
 make setup
@@ -27,6 +30,15 @@ cp .env.example .env
 
 # Start development server
 make dev
+```
+
+Or use docker-compose for all dependencies:
+
+```bash
+# Start Redis and PostgreSQL
+docker-compose up -d
+
+# Then follow the same setup steps above
 ```
 
 The API will be available at `http://localhost:8000`
