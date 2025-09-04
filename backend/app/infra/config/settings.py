@@ -58,6 +58,15 @@ class Settings(BaseSettings):
     llm_temperature: float = Field(0.3, alias="OPENAI_TEMPERATURE")
     llm_max_tokens: int = Field(4000, alias="OPENAI_MAX_TOKENS")
 
+    # LLM Caching
+    llm_cache_enabled: bool = Field(True, alias="LLM_CACHE_ENABLED")
+    llm_cache_type: str = Field(
+        "sqlite", alias="LLM_CACHE_TYPE"
+    )  # sqlite, redis, or memory
+    llm_cache_sqlite_path: str = Field("./llm_cache.db", alias="LLM_CACHE_SQLITE_PATH")
+    llm_cache_ttl: int = Field(86400, alias="LLM_CACHE_TTL")  # 24 hours in seconds
+    llm_cache_max_entries: int = Field(10000, alias="LLM_CACHE_MAX_ENTRIES")
+
     # Assets and Templates
     assets_path: str = Field("assets", alias="ASSETS_PATH")
 

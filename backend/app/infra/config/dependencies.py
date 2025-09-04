@@ -15,6 +15,7 @@ from app.infra.assets.template_catalog import TemplateCatalog
 from app.infra.config.settings import get_settings
 from app.infra.config.logging_config import get_logger
 from app.infra.auth.jwt_auth import get_jwt_auth
+from app.infra.llm.cache_manager import initialize_llm_cache
 
 
 async def get_current_user_id(
@@ -97,8 +98,12 @@ async def get_websocket_broadcaster() -> WebSocketBroadcaster:
 
 
 async def get_llm_client() -> LangChainClient:
-    """Dependency for LLM client."""
+    """Dependency for LLM client with caching support."""
     settings = get_settings()
+
+    # Initialize cache on first use
+    if settings.llm_cache_enabled:
+        initialize_llm_cache()
 
     # Use mock client in development when OPENAI_API_KEY is dummy
     if settings.openai_api_key == "dummy-key-for-test":
