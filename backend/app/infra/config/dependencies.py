@@ -14,18 +14,22 @@ from app.infra.llm.langchain_client import LangChainClient
 from app.infra.assets.template_catalog import TemplateCatalog
 from app.infra.config.settings import get_settings
 from app.infra.config.logging_config import get_logger
+from app.infra.auth.jwt_auth import get_jwt_auth
 
 
 async def get_current_user_id(
     authorization: Annotated[str, Header()] = None,
 ) -> UUID:
-    """
-    Extract user ID from JWT token.
-
-    For now, this is a placeholder implementation.
-    In production, this would validate JWT and extract user_id.
-    """
+    """Extract user ID from JWT token."""
+    settings = get_settings()
     logger = get_logger("auth")
+
+    # Skip auth in development if disabled
+    if settings.disable_auth:
+        user_id = UUID("12345678-1234-5678-9012-123456789012")
+        logger.info("auth.disabled", user_id=str(user_id))
+        return user_id
+
     if not authorization:
         logger.info("auth.missing_header")
         raise HTTPException(
@@ -34,9 +38,22 @@ async def get_current_user_id(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # TODO: Implement proper JWT validation
-    # For development, return a dummy user ID
-    user_id = UUID("12345678-1234-5678-9012-123456789012")
+    # Extract Bearer token
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise ValueError("Invalid scheme")
+    except ValueError:
+        logger.info("auth.invalid_header_format")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authorization header format",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Validate token and extract user ID
+    jwt_auth = get_jwt_auth()
+    user_id = jwt_auth.extract_user_id_from_token(token)
     logger.info("auth.ok", user_id=str(user_id))
     return user_id
 
@@ -47,16 +64,28 @@ async def verify_websocket_token(token: Optional[str]) -> Optional[UUID]:
 
     For WebSocket connections, tokens are typically passed as query parameters.
     """
+    settings = get_settings()
     logger = get_logger("auth.ws")
+
+    # Skip auth in development if disabled
+    if settings.disable_auth:
+        user_id = UUID("12345678-1234-5678-9012-123456789012")
+        logger.info("auth.ws.disabled", user_id=str(user_id))
+        return user_id
+
     if not token:
         logger.info("auth.ws.no_token")
         return None
 
-    # TODO: Implement proper JWT validation
-    # For development, return a dummy user ID
-    user_id = UUID("12345678-1234-5678-9012-123456789012")
-    logger.info("auth.ws.ok", user_id=str(user_id))
-    return user_id
+    # Validate token and extract user ID
+    try:
+        jwt_auth = get_jwt_auth()
+        user_id = jwt_auth.extract_user_id_from_token(token)
+        logger.info("auth.ws.ok", user_id=str(user_id))
+        return user_id
+    except HTTPException:
+        logger.info("auth.ws.invalid_token")
+        return None
 
 
 async def get_websocket_broadcaster() -> WebSocketBroadcaster:

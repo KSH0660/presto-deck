@@ -24,7 +24,14 @@ class Settings(BaseSettings):
     port: int = Field(8000, alias="PORT")
 
     # Database
-    database_url: str = Field("sqlite+aiosqlite:///:memory:", alias="DATABASE_URL")
+    database_url: str = Field(
+        "sqlite+aiosqlite:///./presto_deck.db", alias="DATABASE_URL"
+    )
+    # PostgreSQL (for production/scaling)
+    postgresql_url: str = Field(
+        "postgresql+asyncpg://user:password@localhost:5432/presto_deck",
+        alias="POSTGRESQL_URL",
+    )
     debug_sql: bool = Field(False, alias="DATABASE_ECHO")
 
     # Redis
@@ -46,13 +53,13 @@ class Settings(BaseSettings):
     jwt_expires_minutes: int = Field(30, alias="JWT_EXPIRATION_MINUTES")
 
     # OpenAI/LLM
-    openai_api_key: str = Field("sk-fake-key-for-dev", alias="OPENAI_API_KEY")
+    openai_api_key: str = Field("dummy-key-for-test", alias="OPENAI_API_KEY")
     openai_model: str = Field("gpt-4o-mini", alias="OPENAI_MODEL")
     llm_temperature: float = Field(0.3, alias="OPENAI_TEMPERATURE")
     llm_max_tokens: int = Field(4000, alias="OPENAI_MAX_TOKENS")
 
     # Assets and Templates
-    assets_path: str = Field("assets/templates", alias="ASSETS_PATH")
+    assets_path: str = Field("assets", alias="ASSETS_PATH")
 
     # CORS
     cors_origins: str = Field("*", alias="CORS_ORIGINS")
