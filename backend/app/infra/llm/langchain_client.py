@@ -28,12 +28,22 @@ class LangChainClient:
         model_name: str = "gpt-4o-mini",
         temperature: float = 0.3,
         max_tokens: int = 4000,
+        base_url: Optional[str] = None,
         **kwargs,
     ):
         """Initialize LangChain client with LLM configuration."""
-        self.llm = ChatOpenAI(
-            model=model_name, temperature=temperature, max_tokens=max_tokens, **kwargs
-        )
+        llm_kwargs = {
+            "model": model_name,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            **kwargs,
+        }
+
+        # Add base_url if provided (for OpenAI-compatible servers)
+        if base_url:
+            llm_kwargs["base_url"] = base_url
+
+        self.llm = ChatOpenAI(**llm_kwargs)
         self._text_parser = StrOutputParser()
         self._log = get_logger("infra.llm")
 

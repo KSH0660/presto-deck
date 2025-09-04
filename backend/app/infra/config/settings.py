@@ -54,6 +54,7 @@ class Settings(BaseSettings):
 
     # OpenAI/LLM
     openai_api_key: str = Field("dummy-key-for-test", alias="OPENAI_API_KEY")
+    openai_base_url: str = Field(None, alias="OPENAI_BASE_URL")
     openai_model: str = Field("gpt-4o-mini", alias="OPENAI_MODEL")
     llm_temperature: float = Field(0.3, alias="OPENAI_TEMPERATURE")
     llm_max_tokens: int = Field(4000, alias="OPENAI_MAX_TOKENS")
