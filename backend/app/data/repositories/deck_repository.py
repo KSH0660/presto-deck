@@ -28,7 +28,6 @@ class DeckRepository:
             template_type=deck.template_type.value if deck.template_type else None,
             slide_count=deck.slide_count,
             created_at=deck.created_at,
-            updated_at=deck.updated_at,
             completed_at=deck.completed_at,
         )
 

@@ -10,11 +10,12 @@ from sqlalchemy import (
     Integer,
     DateTime,
     ForeignKey,
-    JSON,
     UniqueConstraint,
     Index,
 )
-from sqlalchemy.dialects.postgresql import UUID
+
+# JSONB 타입을 추가하기 위해 postgresql dialect에서 import합니다.
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from datetime import datetime, UTC
 from enum import Enum
@@ -26,35 +27,26 @@ from app.data.models.base import Base
 class SlideVersionReason(str, Enum):
     """Enumeration of slide version change reasons."""
 
-    AI_GENERATED = "ai_generated"  # Initial AI generation
-    AI_REGENERATED = "ai_regenerated"  # AI re-generation with different prompt
-    USER_EDIT = "user_edit"  # Manual user editing
-    TEMPLATE_CHANGE = "template_change"  # Template switched
-    REORDER = "reorder"  # Slide order changed
-    INSERT = "insert"  # New slide inserted
-    DELETE = "delete"  # Slide deleted (soft delete)
-    COLLABORATION = "collaboration"  # Multi-user editing
-    ROLLBACK = "rollback"  # Reverted to previous version
+    AI_GENERATED = "ai_generated"
+    AI_REGENERATED = "ai_regenerated"
+    USER_EDIT = "user_edit"
+    TEMPLATE_CHANGE = "template_change"
+    REORDER = "reorder"
+    INSERT = "insert"
+    DELETE = "delete"
+    COLLABORATION = "collaboration"
+    ROLLBACK = "rollback"
 
 
 class SlideVersionModel(Base):
     """
     Version history for slides supporting editing, collaboration, and rollback.
-
-    Each version captures a complete snapshot of slide state at that point in time.
-    This enables:
-    - Full edit history tracking
-    - Rollback to any previous version
-    - Collaboration with conflict resolution
-    - AI vs user edit differentiation
-    - Analytics on editing patterns
     """
 
     __tablename__ = "slide_versions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    # Foreign key relationships
     slide_id = Column(
         UUID(as_uuid=True),
         ForeignKey("slides.id", ondelete="CASCADE"),
@@ -68,28 +60,24 @@ class SlideVersionModel(Base):
         nullable=False,
     )
 
-    # Version metadata
-    version_no = Column(Integer, nullable=False)  # 1, 2, 3, ...
-    reason = Column(String(50), nullable=False)  # See SlideVersionReason enum
+    version_no = Column(Integer, nullable=False)
+    reason = Column(String(50), nullable=False)
 
-    # Complete slide state snapshot
-    snapshot = Column(JSON, nullable=False)  # Full slide data at this version
+    # JSON 대신 JSONB를 사용하여 효율성과 인덱싱 성능을 높입니다.
+    snapshot = Column(JSONB, nullable=False)
 
-    # Change metadata
-    created_by = Column(UUID(as_uuid=True), nullable=True)  # User who made the change
-    created_at = Column(DateTime, default=datetime.utcnow, index=True, nullable=False)
+    created_by = Column(UUID(as_uuid=True), nullable=True)
+    # created_at 필드를 UTC를 사용하도록 수정합니다.
+    created_at = Column(
+        DateTime(timezone=True), default=datetime.now(UTC), index=True, nullable=False
+    )
 
-    # Optional: Change description for complex edits
     change_description = Column(Text, nullable=True)
-
-    # Optional: Parent version for branching/merging scenarios
     parent_version = Column(Integer, nullable=True)
 
-    # Relationships
     slide = relationship("SlideModel", back_populates="versions")
     deck = relationship("DeckModel")
 
-    # Constraints and indexes
     __table_args__ = (
         UniqueConstraint("slide_id", "version_no", name="unique_slide_version"),
         Index("idx_slide_versions_created_at", "slide_id", "created_at"),

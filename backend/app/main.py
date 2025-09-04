@@ -41,29 +41,36 @@ async def lifespan(app: FastAPI):
     logger.info("app.shutdown", app_name=settings.app_name)
 
 
+def create_app() -> FastAPI:
+    """Create and configure FastAPI application."""
+    app = FastAPI(
+        title=settings.app_name,
+        description="AI-powered presentation deck generation service",
+        version="1.0.0",
+        debug=settings.debug,
+        lifespan=lifespan,
+    )
+
+    # CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.get_cors_origins(),
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Request context + logging middleware
+    app.add_middleware(RequestContextMiddleware)
+
+    # Include routers
+    app.include_router(v1_router, prefix="/api")
+
+    return app
+
+
 # Create FastAPI application
-app = FastAPI(
-    title=settings.app_name,
-    description="AI-powered presentation deck generation service",
-    version="1.0.0",
-    debug=settings.debug,
-    lifespan=lifespan,
-)
-
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.get_cors_origins(),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Request context + logging middleware
-app.add_middleware(RequestContextMiddleware)
-
-# Include routers
-app.include_router(v1_router, prefix="/api")
+app = create_app()
 
 
 @app.get("/")

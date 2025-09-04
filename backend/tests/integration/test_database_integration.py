@@ -10,10 +10,12 @@ from datetime import datetime, timezone
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infra.db.models import Deck, Slide, DeckEvent
-from app.infra.db.repositories.deck_repository import DeckRepository
-from app.infra.db.repositories.slide_repository import SlideRepository
-from app.infra.db.repositories.event_repository import EventRepository
+from app.data.models.deck_model import DeckModel as Deck
+from app.data.models.slide_model import SlideModel as Slide
+from app.data.models.event_model import EventModel as DeckEvent
+from app.data.repositories.deck_repository import DeckRepository
+from app.data.repositories.slide_repository import SlideRepository
+from app.data.repositories.event_repository import EventRepository
 from app.api.schemas import DeckStatus
 from app.domain_core.value_objects.template_type import TemplateType
 

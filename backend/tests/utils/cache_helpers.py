@@ -8,7 +8,8 @@ import pytest
 from typing import Dict, List, Any
 from contextlib import contextmanager
 
-from app.infra.llm.cache_utils import setup_test_cache, inspect_cache, clear_llm_cache
+from app.infra.llm.cache_utils import setup_test_cache, inspect_cache
+from app.infra.llm.cache_manager import clear_llm_cache
 from app.infra.llm.cache_manager import get_cache_manager
 
 

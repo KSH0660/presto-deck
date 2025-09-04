@@ -104,7 +104,7 @@ class TestCrossSystemIntegration:
         self, test_db_session, enable_llm_cache
     ):
         """Test integration between database operations and LLM caching."""
-        from app.infra.db.models import Deck
+        from app.data.models.deck_model import DeckModel as Deck
         from app.api.schemas import DeckStatus
 
         # Create a deck in database
@@ -112,8 +112,6 @@ class TestCrossSystemIntegration:
         deck = Deck(
             id=deck_id,
             user_id=uuid4(),
-            title="Integration Test Deck",
-            description="Testing DB and cache integration",
             prompt="Create a test deck with cache integration",
             status=DeckStatus.PENDING,
         )
@@ -126,7 +124,7 @@ class TestCrossSystemIntegration:
 
         result = await test_db_session.execute(select(Deck).where(Deck.id == deck_id))
         retrieved_deck = result.scalar_one()
-        assert retrieved_deck.title == "Integration Test Deck"
+        assert retrieved_deck.prompt == "Create a test deck with cache integration"
 
         # Test that cache is available and working
         cache_stats = inspect_cache()
@@ -139,7 +137,8 @@ class TestCrossSystemIntegration:
         if not check_redis_available:
             pytest.skip("Redis not available")
 
-        from app.infra.db.models import Deck, DeckEvent
+        from app.data.models.deck_model import DeckModel as Deck
+        from app.data.models.event_model import EventModel as DeckEvent
         from app.api.schemas import DeckStatus
         import json
 
@@ -148,8 +147,6 @@ class TestCrossSystemIntegration:
         deck = Deck(
             id=deck_id,
             user_id=uuid4(),
-            title="Redis Integration Test",
-            description="Testing Redis and DB integration",
             prompt="Test integration",
             status=DeckStatus.PLANNING,
         )
@@ -198,7 +195,9 @@ class TestCrossSystemIntegration:
         if not check_redis_available:
             pytest.skip("Redis not available for full integration test")
 
-        from app.infra.db.models import Deck, Slide, DeckEvent
+        from app.data.models.deck_model import DeckModel as Deck
+        from app.data.models.slide_model import SlideModel as Slide
+        from app.data.models.event_model import EventModel as DeckEvent
         from app.api.schemas import DeckStatus
         from app.domain_core.value_objects.template_type import TemplateType
         import json
@@ -210,8 +209,6 @@ class TestCrossSystemIntegration:
         deck = Deck(
             id=deck_id,
             user_id=user_id,
-            title="Full Integration Test",
-            description="Testing complete system integration",
             prompt="Create a comprehensive test deck",
             status=DeckStatus.PLANNING,
         )
@@ -364,7 +361,7 @@ class TestExternalServiceFallbacks:
         # This test simulates Redis being unavailable
         # System should continue to work with database-only operations
 
-        from app.infra.db.models import Deck
+        from app.data.models.deck_model import DeckModel as Deck
         from app.api.schemas import DeckStatus
 
         # Should still be able to create decks without Redis
@@ -434,7 +431,7 @@ class TestSystemPerformance:
 
     async def test_concurrent_database_operations(self, test_db_session):
         """Test database performance under concurrent load."""
-        from app.infra.db.models import Deck
+        from app.data.models.deck_model import DeckModel as Deck
         from app.api.schemas import DeckStatus
         import time
 

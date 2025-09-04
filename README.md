@@ -97,9 +97,21 @@ backend/
 ### Create a Presentation
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/decks" \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "Create a presentation about AI in healthcare"}'
+curl -X POST http://localhost:8000/api/v1/decks/ \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer your-jwt-token" \
+    -d '{
+      "prompt": "Create a presentation about machine learning basics for beginners",
+      "style_preferences": {
+        "theme": "modern",
+        "color_scheme": "blue"
+      }
+    }'
+```
+
+```bash
+  curl -X GET "http://localhost:8000/api/v1/decks/d0698b0f-893a-48de-8423-38bdc3106b88" \
+       -H "Authorization: Bearer your-jwt-token"
 ```
 
 ### WebSocket for Real-time Updates

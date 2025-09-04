@@ -86,9 +86,9 @@ def sample_deck_plan():
 @pytest.fixture
 def app():
     """FastAPI application instance for testing."""
-    from app.main import app
+    from app.main import create_app
 
-    return app
+    return create_app()
 
 
 @pytest.fixture
@@ -258,7 +258,7 @@ def setup_test_environment():
 async def test_db_engine():
     """Create test database engine."""
     from app.infra.config.settings import get_settings
-    from app.infra.db.models import Base
+    from app.data.models.base import Base
 
     settings = get_settings()
     engine = create_async_engine(

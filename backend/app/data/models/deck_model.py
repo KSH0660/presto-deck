@@ -5,8 +5,9 @@ SQLAlchemy model for Deck entity.
 from sqlalchemy import Column, String, Text, Integer, DateTime, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, UTC
 import uuid
+
 
 from app.data.models.base import Base
 
@@ -21,8 +22,8 @@ class DeckModel(Base):
     style_preferences = Column(JSON, nullable=True)
     template_type = Column(String(50), nullable=True)
     slide_count = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
     completed_at = Column(DateTime, nullable=True)
 
     # Relationships

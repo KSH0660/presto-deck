@@ -39,7 +39,6 @@ class DeckQueries:
             "status": deck_model.status,
             "slide_count": deck_model.slide_count,
             "created_at": deck_model.created_at,
-            "updated_at": deck_model.updated_at,
             "completed_at": deck_model.completed_at,
         }
         self._log.info("deck.status.found", deck_id=str(deck_id), status=data["status"])
@@ -82,7 +81,6 @@ class DeckQueries:
             "slide_count": len(slides),
             "slides": slides,
             "created_at": deck_model.created_at,
-            "updated_at": deck_model.updated_at,
             "completed_at": deck_model.completed_at,
         }
         self._log.info(
@@ -109,7 +107,6 @@ class DeckQueries:
                 "slide_count": deck.slide_count,
                 "template_type": deck.template_type,
                 "created_at": deck.created_at,
-                "updated_at": deck.updated_at,
             }
             for deck in deck_models
         ]

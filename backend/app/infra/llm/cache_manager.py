@@ -8,7 +8,7 @@ and improve test consistency across environments.
 from typing import Optional
 from pathlib import Path
 
-from langchain.cache import SQLiteCache
+from langchain_community.cache import SQLiteCache
 from langchain_community.cache import RedisCache
 from langchain.globals import set_llm_cache
 import redis

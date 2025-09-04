@@ -54,8 +54,8 @@ class CreateDeckPlanUseCase:
         bind_context(user_id=str(user_id))
         self._log.info("usecase.start", action="create_deck_plan")
         DeckValidators.validate_prompt(prompt)
-        if style_preferences:
-            DeckValidators.validate_style_preferences(style_preferences)
+        # if style_preferences:
+        #     DeckValidators.validate_style_preferences(style_preferences)
 
         # 2. Create domain entity
         deck_id = uuid4()
