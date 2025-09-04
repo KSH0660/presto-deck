@@ -23,7 +23,6 @@ class DeckModel(Base):
     template_type = Column(String(50), nullable=True)
     slide_count = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
-    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
     completed_at = Column(DateTime, nullable=True)
 
     # Relationships

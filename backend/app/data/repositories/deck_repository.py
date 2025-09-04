@@ -76,7 +76,6 @@ class DeckRepository:
                 status=deck.status.value,
                 template_type=deck.template_type.value if deck.template_type else None,
                 slide_count=deck.slide_count,
-                updated_at=deck.updated_at,
                 completed_at=deck.completed_at,
             )
         )
@@ -108,6 +107,6 @@ class DeckRepository:
             ),
             slide_count=model.slide_count,
             created_at=model.created_at,
-            updated_at=model.updated_at,
+            updated_at=None,
             completed_at=model.completed_at,
         )

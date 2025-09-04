@@ -158,10 +158,12 @@ class GenerateDeckPlanUseCase:
             for slide_outline in deck_plan.slides:
                 # Create slide entity
                 slide = Slide(
+                    id=None,  # Will be set by repository
                     deck_id=deck_id,
                     order=slide_outline.order,
                     title=slide_outline.title,
                     content_outline=slide_outline.content,
+                    html_content=None,  # Will be generated later
                     presenter_notes=slide_outline.notes,
                     template_filename="content_slide.html",  # Will be updated by template selection
                     created_at=datetime.now(timezone.utc),

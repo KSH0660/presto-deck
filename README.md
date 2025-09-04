@@ -110,9 +110,16 @@ curl -X POST http://localhost:8000/api/v1/decks/ \
 ```
 
 ```bash
-  curl -X GET "http://localhost:8000/api/v1/decks/d0698b0f-893a-48de-8423-38bdc3106b88" \
-       -H "Authorization: Bearer your-jwt-token"
+  curl -X GET "http://localhost:8000/api/v1/decks/1cf5c133-8cb2-40da-8b85-5376f6f722f6/status" \
+       -H "Authorization: Bearer your-jwt-token"  | jq .
+
+  curl -X GET "http://localhost:8000/api/v1/decks/1cf5c133-8cb2-40da-8b85-5376f6f722f6/slides" \
+       -H "Authorization: Bearer your-jwt-token"  | jq .
 ```
+
+
+
+
 
 ### WebSocket for Real-time Updates
 

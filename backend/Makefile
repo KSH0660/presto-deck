@@ -1,6 +1,6 @@
 # Simple Makefile for Presto Deck POC
 
-.PHONY: help setup dev test clean db-init db-reset db-shell db-status worker worker-status redis-shell
+.PHONY: help setup dev test clean db-init db-reset db-shell db-status worker worker-status redis-shell redis-reset
 
 help: ## Show available commands
 	@echo "Presto Deck POC Commands"
@@ -27,6 +27,15 @@ worker-status: ## Show worker queue status
 
 redis-shell: ## Connect to Redis CLI
 	redis-cli -h localhost -p 6379 -n 0
+
+redis-reset: ## Clear all Redis data (ARQ jobs, cache, etc.)
+	redis-cli -h localhost -p 6379 -n 0 flushdb
+	@echo "✅ Redis cleared!"
+
+deck-slides: ## Show deck slides (usage: make deck-slides DECK_ID=xxx)
+	@curl -s "http://localhost:8000/api/v1/decks/$(DECK_ID)/slides" \
+	     -H "Authorization: Bearer your-jwt-token" | \
+	     jq -r '.items[] | "\(.order). \(.title)\n   📝 \(.content_outline)\n"'
 
 test: ## Run basic tests
 	uv run pytest -v
