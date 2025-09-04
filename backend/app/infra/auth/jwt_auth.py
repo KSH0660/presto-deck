@@ -7,7 +7,7 @@ from uuid import UUID
 
 import jwt
 from fastapi import HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from app.infra.config.settings import get_settings
 
@@ -42,18 +42,67 @@ class JWTAuth:
         )
 
     def verify_token(self, token: str) -> JWTPayload:
-        """Verify JWT token and return payload."""
+        """Verify JWT token and return payload with strict validation."""
         try:
+            # Decode with explicit options for strict validation
             payload = jwt.decode(
                 token,
                 self.settings.jwt_secret_key,
                 algorithms=[self.settings.jwt_algorithm],
+                # Strict validation options
+                options={
+                    "verify_signature": True,
+                    "verify_exp": True,
+                    "verify_iat": True,
+                    "require": ["exp", "iat", "user_id"],
+                },
+                # Ensure we only accept our algorithm
+                leeway=timedelta(seconds=0),  # No clock skew tolerance
             )
-            return JWTPayload(**payload)
+
+            # Validate payload structure
+            jwt_payload = JWTPayload(**payload)
+
+            # Additional security validation: ensure user_id is valid UUID format
+            try:
+                UUID(jwt_payload.user_id)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid user ID format in token",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            return jwt_payload
+
         except jwt.ExpiredSignatureError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has expired",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        except jwt.InvalidSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token signature",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        except jwt.InvalidTokenError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token format",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        except jwt.MissingRequiredClaimError as e:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Token missing required claim: {e.claim}",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        except ValidationError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload structure",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         except jwt.JWTError:
@@ -64,9 +113,18 @@ class JWTAuth:
             )
 
     def extract_user_id_from_token(self, token: str) -> UUID:
-        """Extract user ID from JWT token."""
+        """Extract user ID from JWT token with validation."""
         payload = self.verify_token(token)
-        return UUID(payload.user_id)
+
+        # Additional validation: ensure UUID format
+        try:
+            return UUID(payload.user_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid user ID format in token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
 
 def get_jwt_auth() -> JWTAuth:

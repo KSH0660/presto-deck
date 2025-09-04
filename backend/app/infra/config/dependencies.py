@@ -108,8 +108,8 @@ async def get_llm_client() -> LangChainClient:
 
     return LangChainClient(
         model_name=settings.openai_model,
-        temperature=0.3,
-        max_tokens=4000,
+        temperature=settings.llm_temperature,
+        max_tokens=settings.llm_max_tokens,
     )
 
 
