@@ -10,9 +10,10 @@ from datetime import datetime
 
 from app.data.models.event_model import EventModel
 from app.infra.config.logging_config import get_logger
+from app.application.ports import EventRepositoryPort
 
 
-class EventRepository:
+class EventRepository(EventRepositoryPort):
     def __init__(self, session: AsyncSession):
         self.session = session
         self._log = get_logger("repo.event")

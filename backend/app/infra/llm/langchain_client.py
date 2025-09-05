@@ -11,11 +11,12 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.output_parsers import StrOutputParser
 from pydantic import BaseModel
 from app.infra.config.logging_config import get_logger
+from app.application.ports import LLMServicePort
 
 T = TypeVar("T", bound=BaseModel)
 
 
-class LangChainClient:
+class LangChainClient(LLMServicePort):
     """
     Infrastructure-layer LLM client providing pure invoke functionality.
 

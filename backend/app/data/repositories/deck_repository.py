@@ -8,11 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
 
 from app.data.models.deck_model import DeckModel
-from app.domain_core.entities.deck import Deck
+from app.domain.entities.deck import Deck
+from app.application.ports import DeckRepositoryPort
 from app.infra.config.logging_config import get_logger
 
 
-class DeckRepository:
+class DeckRepository(DeckRepositoryPort):
     def __init__(self, session: AsyncSession):
         self.session = session
         self._log = get_logger("repo.deck")

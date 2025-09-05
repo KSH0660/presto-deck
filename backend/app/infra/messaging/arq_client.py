@@ -6,9 +6,10 @@ from typing import Dict, Any, Optional
 from arq import create_pool
 from arq.connections import RedisSettings
 from app.infra.config.logging_config import get_logger
+from app.application.ports import MessageBrokerPort
 
 
-class ARQClient:
+class ARQClient(MessageBrokerPort):
     def __init__(self, redis_settings: RedisSettings):
         self.redis_settings = redis_settings
         self._pool = None

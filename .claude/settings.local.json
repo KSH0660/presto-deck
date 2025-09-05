@@ -24,7 +24,8 @@
       "Bash(uv run:*)",
       "Bash(git push:*)",
       "Bash(cat:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []

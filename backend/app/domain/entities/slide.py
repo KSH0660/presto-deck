@@ -42,3 +42,38 @@ class Slide:
             if len(self.content_outline) > 200
             else self.content_outline
         )
+
+    def update_content(self, html_content: str, presenter_notes: str = None) -> None:
+        """
+        Business rule: Update slide content with validation.
+
+        Args:
+            html_content: New HTML content for the slide
+            presenter_notes: Optional presenter notes
+
+        Raises:
+            ValueError: If content is invalid
+        """
+        if not html_content or not html_content.strip():
+            raise ValueError("HTML content cannot be empty")
+
+        self.html_content = html_content.strip()
+        if presenter_notes is not None:
+            self.presenter_notes = presenter_notes
+        self.updated_at = datetime.utcnow()
+
+    def change_order(self, new_order: int) -> None:
+        """
+        Business rule: Change slide order with validation.
+
+        Args:
+            new_order: New order value (must be positive)
+
+        Raises:
+            ValueError: If order is invalid
+        """
+        if new_order <= 0:
+            raise ValueError("Slide order must be positive")
+
+        self.order = new_order
+        self.updated_at = datetime.utcnow()

@@ -6,10 +6,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import v1_router
 from app.infra.config.settings import get_settings
 from app.infra.config.logging_config import setup_logging, get_logger
 from app.infra.middleware.request_context import RequestContextMiddleware
+from app.api.v1 import v1_router
 
 settings = get_settings()
 

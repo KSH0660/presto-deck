@@ -10,11 +10,12 @@ from datetime import datetime, timezone
 
 from app.data.models.slide_model import SlideModel
 from app.data.models.slide_version_model import SlideVersionModel, SlideVersionReason
-from app.domain_core.entities.slide import Slide
+from app.domain.entities.slide import Slide
+from app.application.ports import SlideRepositoryPort
 from app.infra.config.logging_config import get_logger
 
 
-class SlideRepository:
+class SlideRepository(SlideRepositoryPort):
     def __init__(self, session: AsyncSession):
         self.session = session
         self._log = get_logger("repo.slide")

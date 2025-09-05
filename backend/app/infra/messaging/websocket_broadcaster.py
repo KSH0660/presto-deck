@@ -7,9 +7,10 @@ import json
 import redis.asyncio as redis
 from fastapi import WebSocket
 from app.infra.config.logging_config import get_logger
+from app.application.ports import WebSocketBroadcasterPort
 
 
-class WebSocketBroadcaster:
+class WebSocketBroadcaster(WebSocketBroadcasterPort):
     def __init__(self, redis_client: redis.Redis):
         self.redis_client = redis_client
         self._connections: Dict[str, List[WebSocket]] = {}  # user_id -> [websockets]
