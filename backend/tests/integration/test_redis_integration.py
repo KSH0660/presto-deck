@@ -197,7 +197,7 @@ class TestARQIntegration:
         }
 
         # Enqueue a job
-        job_id = await arq_client.enqueue("generate_deck", **job_data)
+        job_id = await arq_client.enqueue_job("generate_deck", **job_data)
         assert job_id is not None
 
         # Job ID should be a string
@@ -211,7 +211,7 @@ class TestARQIntegration:
 
         # Enqueue job with delay
         future_time = time.time() + 5  # 5 seconds in future
-        job_id = await arq_client.enqueue(
+        job_id = await arq_client.enqueue_job(
             "process_slide", defer_until=future_time, **job_data
         )
 
@@ -224,13 +224,13 @@ class TestARQIntegration:
         low_priority_job = {"deck_id": str(uuid4()), "priority": "low"}
 
         # Enqueue jobs with different priorities
-        high_job_id = await arq_client.enqueue(
+        high_job_id = await arq_client.enqueue_job(
             "urgent_task",
             job_priority=10,  # Higher number = higher priority
             **high_priority_job,
         )
 
-        low_job_id = await arq_client.enqueue(
+        low_job_id = await arq_client.enqueue_job(
             "background_task", job_priority=1, **low_priority_job
         )
 

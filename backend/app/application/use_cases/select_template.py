@@ -234,7 +234,7 @@ Focus on matching slide content to template capabilities.
                         template_assignment = assignment
                         break
 
-                job_id = await self.arq_client.enqueue(
+                job_id = await self.arq_client.enqueue_job(
                     "generate_slide_content_with_template",
                     deck_id=str(deck_id),
                     slide_id=str(slide.id),

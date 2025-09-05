@@ -239,7 +239,7 @@ class GenerateDeckPlanUseCase:
 
         # In a full implementation:
         # for slide in slides:
-        #     await self.arq_client.enqueue(
+        #     await self.arq_client.enqueue_job(
         #         "generate_slide_content",
         #         deck_id=str(deck_id),
         #         slide_id=str(slide.id),

@@ -114,7 +114,7 @@ class CreateDeckPlanCommand:
         """Handle side effects after successful database commit."""
         try:
             # 1. Enqueue ARQ background job for LLM planning
-            job_id = await self.arq_client.enqueue(
+            job_id = await self.arq_client.enqueue_job(
                 "generate_deck_plan",
                 deck_id=str(deck_id),
                 user_id=str(user_id),
