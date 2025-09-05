@@ -12,9 +12,9 @@ from typing import Dict, Any
 from uuid import UUID, uuid4
 from datetime import datetime
 
-from app.domain_core.entities.deck import Deck
+from app.domain.entities.deck import Deck
 from app.api.schemas import DeckStatus
-from app.domain_core.validators.deck_validators import DeckValidators
+from app.domain.validators.deck_validators import DeckValidators
 from app.data.repositories.deck_repository import DeckRepository
 from app.data.repositories.event_repository import EventRepository
 from app.infra.messaging.arq_client import ARQClient

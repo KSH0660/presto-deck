@@ -11,8 +11,8 @@ from app.application.use_cases.create_deck_plan import CreateDeckPlanUseCase
 from app.application.use_cases.select_template import SelectTemplateUseCase
 from app.application.use_cases.write_slide_content import WriteSlideContentUseCase
 from app.api.schemas import DeckStatus
-from app.domain_core.entities.deck import Deck
-from app.domain_core.entities.slide import Slide
+from app.domain.entities.deck import Deck
+from app.domain.entities.slide import Slide
 
 
 class TestCreateDeckPlanUseCase:
@@ -144,7 +144,7 @@ class TestSelectTemplateUseCase:
         )
         mock_dependencies["event_repo"].store_event = AsyncMock()
         # Mock structured output response
-        from app.domain_core.value_objects.template_selection import (
+        from app.domain.value_objects.template_selection import (
             DeckTemplateSelections,
             SlideTemplateAssignment,
         )

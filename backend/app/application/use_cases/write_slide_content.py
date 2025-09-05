@@ -13,9 +13,9 @@ from typing import Dict, Any, List
 from uuid import UUID
 from datetime import datetime, timezone
 
-from app.domain_core.entities.slide import Slide
+from app.domain.entities.slide import Slide
 from app.api.schemas import DeckStatus
-from app.domain_core.validators.slide_validators import SlideValidators
+from app.domain.validators.slide_validators import SlideValidators
 from app.data.repositories.deck_repository import DeckRepository
 from app.data.repositories.slide_repository import SlideRepository
 from app.data.repositories.event_repository import EventRepository

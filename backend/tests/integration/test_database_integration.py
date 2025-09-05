@@ -17,7 +17,7 @@ from app.data.repositories.deck_repository import DeckRepository
 from app.data.repositories.slide_repository import SlideRepository
 from app.data.repositories.event_repository import EventRepository
 from app.api.schemas import DeckStatus
-from app.domain_core.value_objects.template_type import TemplateType
+from app.domain.value_objects.template_type import TemplateType
 
 
 @pytest.mark.integration

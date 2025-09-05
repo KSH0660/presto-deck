@@ -199,7 +199,7 @@ class TestCrossSystemIntegration:
         from app.data.models.slide_model import SlideModel as Slide
         from app.data.models.event_model import EventModel as DeckEvent
         from app.api.schemas import DeckStatus
-        from app.domain_core.value_objects.template_type import TemplateType
+        from app.domain.value_objects.template_type import TemplateType
         import json
 
         # Step 1: Create deck (Database)

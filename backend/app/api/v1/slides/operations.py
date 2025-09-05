@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.schemas import SlideOut, InsertSlideRequest
 from app.data.queries.deck_queries import DeckQueries
 from app.data.repositories.slide_repository import SlideRepository
-from app.domain_core.entities.slide import Slide
+from app.domain.entities.slide import Slide
 from app.infra.config.database import get_db_session
 from app.infra.config.dependencies import get_current_user_id
 from app.infra.config.logging_config import get_logger, bind_context

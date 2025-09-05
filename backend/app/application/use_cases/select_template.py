@@ -14,10 +14,10 @@ from typing import Dict, Any, List
 from uuid import UUID
 from datetime import datetime, UTC, timezone
 
-from app.domain_core.entities.slide import Slide
+from app.domain.entities.slide import Slide
 from app.api.schemas import DeckStatus
-from app.domain_core.value_objects.template_selection import DeckTemplateSelections
-from app.domain_core.validators.deck_validators import DeckValidators
+from app.domain.value_objects.template_selection import DeckTemplateSelections
+from app.domain.validators.deck_validators import DeckValidators
 from app.data.repositories.deck_repository import DeckRepository
 from app.data.repositories.slide_repository import SlideRepository
 from app.data.repositories.event_repository import EventRepository

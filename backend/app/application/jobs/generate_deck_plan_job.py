@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List
 from uuid import UUID
 from datetime import datetime, timezone
 
-from app.domain_core.entities.slide import Slide
+from app.domain.entities.slide import Slide
 from app.api.schemas import DeckStatus
 from app.data.repositories.deck_repository import DeckRepository
 from app.data.repositories.slide_repository import SlideRepository

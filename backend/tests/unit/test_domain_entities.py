@@ -6,8 +6,8 @@ import pytest
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from app.domain_core.entities.deck import Deck
-from app.domain_core.entities.slide import Slide
+from app.domain.entities.deck import Deck
+from app.domain.entities.slide import Slide
 from app.api.schemas import DeckStatus
 
 

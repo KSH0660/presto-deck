@@ -3,8 +3,8 @@ Unit tests for domain validators.
 """
 
 import pytest
-from app.domain_core.validators.deck_validators import DeckValidators
-from app.domain_core.validators.slide_validators import SlideValidators
+from app.domain.validators.deck_validators import DeckValidators
+from app.domain.validators.slide_validators import SlideValidators
 
 
 class TestDeckValidators:
